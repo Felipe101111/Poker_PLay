@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Session storage is managed by connect-pg-simple (its own auto-created
+// "session" table: sid/sess/expire) — see backend/src/app.ts. The conceptual
+// Session entity from data-model.md (id, userId, createdAt, expiresAt) maps to
+// that table's sid/sess(JSON: userId, createdAt)/expire columns respectively.
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  // Original casing preserved for display; uniqueness is enforced case/whitespace
+  // -insensitively via the shadow `usernameNormalized` column (data-model.md FR-003/FR-011).
+  username           String
+  usernameNormalized String   @unique
+  passwordHash       String
+  createdAt          DateTime @default(now())
+
+  @@map("users")
+}
