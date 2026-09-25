@@ -7,6 +7,7 @@ import connectPgSimple from 'connect-pg-simple';
 import { ApiError, errorBody } from './shared/errors.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/auth/users.routes.js';
+import { friendsRouter } from './modules/friends/friends.routes.js';
 
 dotenv.config();
 
@@ -63,11 +64,17 @@ export function createApp() {
 
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
+  app.use('/api/friends', friendsRouter);
 
   // Centralized error handler: always responds with { error: { code, message } }.
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
     if (err instanceof ApiError) {
       res.status(err.status).json(errorBody(err.code, err.message));
+      return;
+    }
+    // Malformed JSON bodies are a client error (400), not a server fault (500).
+    if (err instanceof SyntaxError && 'status' in err && (err as { status?: number }).status === 400) {
+      res.status(400).json(errorBody('VALIDATION_ERROR', 'Malformed JSON body'));
       return;
     }
     // eslint-disable-next-line no-console

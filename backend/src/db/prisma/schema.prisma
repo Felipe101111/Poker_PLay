@@ -21,5 +21,36 @@ model User {
   passwordHash       String
   createdAt          DateTime @default(now())
 
+  sentFriendRequests     FriendRequest[] @relation("Sender")
+  receivedFriendRequests FriendRequest[] @relation("Receiver")
+  friendRequestsAsLow    FriendRequest[] @relation("UserLow")
+  friendRequestsAsHigh   FriendRequest[] @relation("UserHigh")
+
   @@map("users")
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+}
+
+// One row per unordered user pair (data-model.md 002-friends-system). Reject/cancel/remove
+// physically delete the row instead of persisting a terminal status — see research.md.
+model FriendRequest {
+  id         String              @id @default(uuid())
+  senderId   String
+  receiverId String
+  userLowId  String
+  userHighId String
+  status     FriendRequestStatus @default(PENDING)
+  createdAt  DateTime            @default(now())
+  updatedAt  DateTime            @updatedAt
+
+  sender   User @relation("Sender", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver User @relation("Receiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  userLow  User @relation("UserLow", fields: [userLowId], references: [id], onDelete: Cascade)
+  userHigh User @relation("UserHigh", fields: [userHighId], references: [id], onDelete: Cascade)
+
+  @@unique([userLowId, userHighId])
+  @@map("friend_requests")
 }

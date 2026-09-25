@@ -6,6 +6,7 @@ export function buildTestApp() {
 }
 
 export async function resetDatabase() {
+  await prisma.friendRequest.deleteMany();
   await prisma.user.deleteMany();
 }
 
