@@ -4,6 +4,13 @@ export type ErrorCode =
   | 'INVALID_CREDENTIALS'
   | 'UNAUTHENTICATED'
   | 'USERNAME_TAKEN'
+  | 'USER_NOT_FOUND'
+  | 'REQUEST_NOT_FOUND'
+  | 'UNAUTHORIZED'
+  | 'FRIEND_REQUEST_CONFLICT'
+  | 'HAND_IN_PROGRESS'
+  | 'HAND_NOT_FOUND'
+  | 'ILLEGAL_ACTION'
   | 'INTERNAL_ERROR';
 
 export class ApiError extends Error {

@@ -8,6 +8,7 @@ import { ApiError, errorBody } from './shared/errors.js';
 import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/auth/users.routes.js';
 import { friendsRouter } from './modules/friends/friends.routes.js';
+import { localGamesRouter } from './modules/local-games/local-games.routes.js';
 
 dotenv.config();
 
@@ -65,6 +66,7 @@ export function createApp() {
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/friends', friendsRouter);
+  app.use('/api/local-games', localGamesRouter);
 
   // Centralized error handler: always responds with { error: { code, message } }.
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
