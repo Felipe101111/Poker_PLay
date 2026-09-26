@@ -25,6 +25,12 @@ model User {
   receivedFriendRequests FriendRequest[] @relation("Receiver")
   friendRequestsAsLow    FriendRequest[] @relation("UserLow")
   friendRequestsAsHigh   FriendRequest[] @relation("UserHigh")
+  hostedRooms             PokerRoom[]    @relation("RoomHost")
+  roomMemberships         RoomMember[]
+  sentRoomInvitations     RoomInvitation[] @relation("InvitationSender")
+  receivedRoomInvitations RoomInvitation[] @relation("InvitationRecipient")
+  tableParticipants       TableParticipant[]
+  tableActions            TableAction[]
 
   @@map("users")
 }
@@ -53,4 +59,200 @@ model FriendRequest {
 
   @@unique([userLowId, userHighId])
   @@map("friend_requests")
+}
+
+enum RoomVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+enum RoomStatus {
+  WAITING
+  STARTED
+  CLOSED
+}
+
+enum RoomInvitationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  INVALIDATED
+}
+
+model PokerRoom {
+  id              String        @id @default(uuid())
+  hostId          String
+  name            String
+  visibility      RoomVisibility
+  status          RoomStatus    @default(WAITING)
+  seatLimit       Int
+  minPlayers      Int
+  startingStackBB Int
+  smallBlind      Int
+  bigBlind        Int
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  startedAt       DateTime?
+  closedAt        DateTime?
+
+  host        User             @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  members     RoomMember[]
+  invitations RoomInvitation[]
+  multiplayerTable MultiplayerTable?
+
+  @@index([status, visibility, createdAt])
+  @@map("poker_rooms")
+}
+
+model RoomMember {
+  id         String   @id @default(uuid())
+  roomId     String
+  userId     String   @unique
+  seatNumber Int
+  ready      Boolean  @default(false)
+  joinedAt   DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+
+  room PokerRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tableParticipant TableParticipant?
+
+  @@unique([roomId, userId])
+  @@unique([roomId, seatNumber])
+  @@index([roomId, joinedAt])
+  @@map("room_members")
+}
+
+enum MultiplayerTableStatus {
+  ACTIVE
+  CLOSED
+}
+
+enum MultiplayerHandStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+enum ParticipantConnectionStatus {
+  ONLINE
+  DISCONNECTED
+  ELIMINATED
+}
+
+enum MultiplayerActionType {
+  FOLD
+  CHECK
+  CALL
+  BET
+  RAISE
+  ALL_IN
+}
+
+model MultiplayerTable {
+  id             String                 @id @default(uuid())
+  roomId         String                 @unique
+  status         MultiplayerTableStatus @default(ACTIVE)
+  handNumber     Int                    @default(1)
+  currentHandId  String?                @unique
+  dealerSeat     Int
+  stateVersion   Int                    @default(1)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  closedAt       DateTime?
+
+  room        PokerRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  currentHand MultiplayerHand? @relation("CurrentTableHand", fields: [currentHandId], references: [id])
+  hands       MultiplayerHand[] @relation("TableHands")
+  participants TableParticipant[]
+
+  @@index([status, updatedAt])
+  @@map("multiplayer_tables")
+}
+
+model TableParticipant {
+  id                  String                     @id @default(uuid())
+  tableId             String
+  userId              String
+  roomMemberId        String                     @unique
+  seatNumber          Int
+  stack               Int
+  eligibleForNextHand Boolean                    @default(true)
+  connectionStatus    ParticipantConnectionStatus @default(DISCONNECTED)
+  lastSeenAt          DateTime                   @default(now())
+  disconnectedAt      DateTime?
+  eliminatedAt        DateTime?
+
+  table     MultiplayerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomMember RoomMember      @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+
+  @@unique([tableId, userId])
+  @@unique([tableId, seatNumber])
+  @@index([tableId, eligibleForNextHand])
+  @@index([connectionStatus, disconnectedAt])
+  @@map("table_participants")
+}
+
+model MultiplayerHand {
+  id             String                @id @default(uuid())
+  tableId        String
+  handNumber     Int
+  status         MultiplayerHandStatus @default(ACTIVE)
+  stateSnapshot  Json
+  stateVersion   Int                   @default(1)
+  actingSeat     Int?
+  startedAt      DateTime              @default(now())
+  completedAt    DateTime?
+  resultSnapshot Json?
+
+  table       MultiplayerTable @relation("TableHands", fields: [tableId], references: [id], onDelete: Cascade)
+  currentFor  MultiplayerTable? @relation("CurrentTableHand")
+  actions     TableAction[]
+
+  @@unique([tableId, handNumber])
+  @@index([tableId, status])
+  @@map("multiplayer_hands")
+}
+
+model TableAction {
+  id              String                @id @default(uuid())
+  handId          String
+  requestId       String
+  sequence        Int
+  userId          String
+  seatNumber      Int
+  actionType      MultiplayerActionType
+  amount          Int?
+  accepted        Boolean
+  rejectionCode   String?
+  resultingVersion Int?
+  createdAt       DateTime              @default(now())
+
+  hand MultiplayerHand @relation(fields: [handId], references: [id], onDelete: Cascade)
+  user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([handId, userId, requestId])
+  @@unique([handId, sequence])
+  @@index([handId, createdAt])
+  @@map("table_actions")
+}
+
+model RoomInvitation {
+  id         String               @id @default(uuid())
+  roomId     String
+  fromUserId String
+  toUserId   String
+  status     RoomInvitationStatus @default(PENDING)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  room     PokerRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  fromUser User      @relation("InvitationSender", fields: [fromUserId], references: [id], onDelete: Cascade)
+  toUser   User      @relation("InvitationRecipient", fields: [toUserId], references: [id], onDelete: Cascade)
+
+  @@unique([roomId, toUserId])
+  @@index([toUserId, status, createdAt])
+  @@map("room_invitations")
 }

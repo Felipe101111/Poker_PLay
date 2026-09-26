@@ -1,6 +1,6 @@
-# Backend — Poker Platform (User Authentication)
+# Backend — Poker Platform
 
-Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing feature `001-user-authentication` (register, login, logout, profile).
+Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing authentication, friends, local poker hands, and feature `004-poker-rooms`.
 
 ## Prerequisites
 
@@ -26,7 +26,7 @@ Copy `.env.example` to `.env` and adjust as needed:
 ```powershell
 npm.cmd install
 npm.cmd run prisma:generate
-npm.cmd run prisma:migrate   # creates the users table; connect-pg-simple creates its own session table on first run
+npm.cmd run prisma:migrate:deploy
 npm.cmd run dev
 ```
 
@@ -43,7 +43,8 @@ Contract tests (`tests/contract/`) and integration tests (`tests/integration/`) 
 - `src/app.ts` — Express app wiring (JSON/cookie parsing, CORS, session, routes, error handler)
 - `src/modules/auth/` — registration, login, logout, profile (feature 001); also exports `isUserOnline(userId)` (session-presence.ts) reused by the friends module
 - `src/modules/friends/` — search, friend requests, accept/reject/cancel, friends list, remove (feature 002)
-- `src/db/prisma/` — Prisma schema/client (`User`, `FriendRequest`); the session table is managed separately by `connect-pg-simple`
+- `src/modules/rooms/` — persistent room creation, public discovery, membership, invitations, readiness, host transfer, and lifecycle controls (feature 004)
+- `src/db/prisma/` — Prisma schema/client (`User`, `FriendRequest`, `PokerRoom`, `RoomMember`, `RoomInvitation`); the session table is managed separately by `connect-pg-simple`
 - `src/shared/` — cross-cutting helpers (error shape)
 
 ## Friends API (feature 002)
@@ -62,3 +63,11 @@ All endpoints below live under `/api/friends` and require an authenticated sessi
 | `DELETE /api/friends/:userId` | Remove a friend |
 
 See [../specs/001-user-authentication/quickstart.md](../specs/001-user-authentication/quickstart.md) and [../specs/002-friends-system/quickstart.md](../specs/002-friends-system/quickstart.md) for end-to-end validation steps.
+
+## Rooms API (feature 004)
+
+Room endpoints live under `/api/rooms` and require an authenticated session. Public `WAITING` rooms can be listed and joined; private rooms require an accepted-friend invitation. Membership, seat allocation, invitations, readiness, host transfer, and lifecycle changes are server-authoritative and transaction-protected.
+
+The lifecycle is `WAITING -> STARTED` or `WAITING -> CLOSED`. Starting a room fixes its roster and configuration but does not deal cards, execute a hand, or require WebSockets. Pending invitations are invalidated when a room starts or closes. Waiting-room presence cleanup releases members inactive for 15 minutes when their session is no longer active.
+
+See [../specs/004-poker-rooms/contracts/rooms-api.md](../specs/004-poker-rooms/contracts/rooms-api.md) for request and response details.

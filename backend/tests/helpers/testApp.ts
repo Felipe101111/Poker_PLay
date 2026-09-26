@@ -6,6 +6,13 @@ export function buildTestApp() {
 }
 
 export async function resetDatabase() {
+  await prisma.tableAction.deleteMany();
+  await prisma.multiplayerHand.deleteMany();
+  await prisma.tableParticipant.deleteMany();
+  await prisma.multiplayerTable.deleteMany();
+  await prisma.roomInvitation.deleteMany();
+  await prisma.roomMember.deleteMany();
+  await prisma.pokerRoom.deleteMany();
   await prisma.friendRequest.deleteMany();
   await prisma.user.deleteMany();
 }

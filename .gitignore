@@ -6,6 +6,7 @@ build/
 .env.*
 !.env.example
 coverage/
+*.tsbuildinfo
 .DS_Store
 Thumbs.db
 *.tmp

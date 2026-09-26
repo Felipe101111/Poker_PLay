@@ -40,14 +40,16 @@ export function startHand(
   ownerUserId: string,
   seatCount: number,
   startingStackBB: number,
-  rngSeed?: number
+  rngSeed?: number,
+  startingStacks?: number[],
+  dealerSeatOverride?: number
 ): HandState {
   const startingStack = startingStackBB * CHIPS_PER_BB;
   const seats: Seat[] = Array.from({ length: seatCount }, (_, i) => ({
     seatNumber: i + 1,
-    stack: startingStack,
+    stack: startingStacks?.[i] ?? startingStack,
     holeCards: null,
-    folded: false,
+    folded: startingStacks !== undefined && (startingStacks[i] ?? 0) === 0,
     isAllIn: false,
     streetContribution: 0,
     totalContribution: 0,
@@ -58,7 +60,7 @@ export function startHand(
   const deck = shuffle(createDeck(), rng);
   dealHoleCards(seats, deck);
 
-  const dealerSeat = 1;
+  const dealerSeat = dealerSeatOverride ?? 1;
   let smallBlindSeat: number;
   let bigBlindSeat: number;
   let firstToActPreflop: number;

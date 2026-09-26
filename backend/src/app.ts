@@ -9,6 +9,8 @@ import { authRouter } from './modules/auth/auth.routes.js';
 import { usersRouter } from './modules/auth/users.routes.js';
 import { friendsRouter } from './modules/friends/friends.routes.js';
 import { localGamesRouter } from './modules/local-games/local-games.routes.js';
+import { roomsRouter } from './modules/rooms/rooms.routes.js';
+import { multiplayerRouter } from './modules/multiplayer/multiplayer.routes.js';
 
 dotenv.config();
 
@@ -22,6 +24,25 @@ declare module 'express-session' {
 }
 
 const PgSession = connectPgSimple(session);
+
+export const sessionMiddleware = session({
+  store: new PgSession({
+    conString: process.env.DATABASE_URL,
+    createTableIfMissing: true,
+    tableName: 'session'
+  }),
+  secret: process.env.SESSION_SECRET ?? 'dev-secret-change-me',
+  name: 'sid',
+  resave: false,
+  saveUninitialized: false,
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: 1000 * 60 * 60 * 24 * 7
+  }
+});
 
 export function createApp() {
   const app = express();
@@ -39,34 +60,15 @@ export function createApp() {
     })
   );
 
-  // Session cookie is Secure only outside local development, so the documented
-  // local (http://localhost) quickstart flow keeps working without HTTPS.
-  const isProduction = process.env.NODE_ENV === 'production';
-  app.use(
-    session({
-      store: new PgSession({
-        conString: process.env.DATABASE_URL,
-        createTableIfMissing: true,
-        tableName: 'session'
-      }),
-      secret: process.env.SESSION_SECRET ?? 'dev-secret-change-me',
-      name: 'sid',
-      resave: false,
-      saveUninitialized: false,
-      rolling: true, // sliding expiration: refresh on every request (FR-008)
-      cookie: {
-        httpOnly: true,
-        secure: isProduction,
-        sameSite: 'lax',
-        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-      }
-    })
-  );
+  // The same session middleware is mounted on HTTP and Socket.IO.
+  app.use(sessionMiddleware);
 
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/friends', friendsRouter);
   app.use('/api/local-games', localGamesRouter);
+  app.use('/api/rooms', roomsRouter);
+  app.use('/api/rooms', multiplayerRouter);
 
   // Centralized error handler: always responds with { error: { code, message } }.
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
