@@ -55,6 +55,7 @@ export interface CreateRoomInput {
 
 export const roomsApi = {
   list: () => apiClient.get<{ rooms: RoomView[] }>('/api/rooms'),
+  current: () => apiClient.get<{ room: RoomView | null }>('/api/rooms/current'),
   get: (roomId: string) => apiClient.get<RoomView>(`/api/rooms/${roomId}`),
   create: (input: CreateRoomInput) => apiClient.post<RoomView>('/api/rooms', input),
   join: (roomId: string, invitationId?: string) => apiClient.post<RoomView>(`/api/rooms/${roomId}/join`, invitationId ? { invitationId } : {}),

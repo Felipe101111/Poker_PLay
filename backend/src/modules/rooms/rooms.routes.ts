@@ -19,6 +19,14 @@ roomsRouter.get('/', async (_req, res, next) => {
   }
 });
 
+roomsRouter.get('/current', async (req, res, next) => {
+  try {
+    res.status(200).json({ room: await roomsService.getCurrentRoom(req.session.userId!) });
+  } catch (error) {
+    next(error);
+  }
+});
+
 roomsRouter.post('/', async (req, res, next) => {
   const parsed = createRoomSchema.safeParse(req.body);
   if (!parsed.success) return next(validationError(parsed.error.issues[0]?.message ?? 'Invalid room settings'));

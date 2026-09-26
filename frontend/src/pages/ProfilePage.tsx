@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { apiClient, ApiRequestError } from '../services/apiClient';
 
 interface Profile {
@@ -67,6 +67,14 @@ export function ProfilePage() {
         />
         <button type="submit">Save</button>
       </form>
+
+      <p>
+        <Link to="/friends">Añadir amigo</Link>
+        {' · '}
+        <Link to="/rooms">Play multiplayer</Link>
+        {' · '}
+        <Link to="/local-game">Play local game</Link>
+      </p>
 
       <button type="button" onClick={handleLogout}>
         Log out

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { apiClient, ApiRequestError } from '../services/apiClient';
 import { roomsApi, type CreateRoomInput, type RoomInvitation, type RoomView } from '../services/roomsApi';
+import { friendsApi, type Friend } from '../services/friendsApi';
 import { Link } from 'react-router-dom';
 
 const initialForm: CreateRoomInput = {
@@ -16,7 +17,9 @@ const initialForm: CreateRoomInput = {
 export function RoomsPage() {
   const [rooms, setRooms] = useState<RoomView[]>([]);
   const [selected, setSelected] = useState<RoomView | null>(null);
+  const [currentRoom, setCurrentRoom] = useState<RoomView | null>(null);
   const [invitations, setInvitations] = useState<RoomInvitation[]>([]);
+  const [friends, setFriends] = useState<Friend[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [form, setForm] = useState(initialForm);
   const [inviteUserId, setInviteUserId] = useState('');
@@ -24,14 +27,22 @@ export function RoomsPage() {
   const [message, setMessage] = useState<string | null>(null);
 
   async function refresh() {
-    const [roomList, invitationList] = await Promise.all([roomsApi.list(), roomsApi.listInvitations()]);
+    const [roomList, invitationList, friendList] = await Promise.all([
+      roomsApi.list(),
+      roomsApi.listInvitations(),
+      friendsApi.listFriends()
+    ]);
     setRooms(roomList.rooms);
     setInvitations(invitationList.invitations);
+    setFriends(Array.isArray(friendList) ? friendList : []);
   }
 
   useEffect(() => {
-    Promise.all([refresh(), apiClient.get<{ id: string }>('/api/users/me')])
-      .then(([, profile]) => setCurrentUserId(profile.id))
+    Promise.all([refresh(), apiClient.get<{ id: string }>('/api/users/me'), roomsApi.current()])
+      .then(([, profile, current]) => {
+        setCurrentUserId(profile.id);
+        setCurrentRoom(current?.room ?? null);
+      })
       .catch((err) => setError(getError(err, 'Could not load rooms.')));
   }, []);
 
@@ -52,8 +63,36 @@ export function RoomsPage() {
       setMessage('Room created.');
       await refresh();
     } catch (err) {
+      if (err instanceof ApiRequestError && err.code === 'ACTIVE_ROOM_EXISTS') {
+        const current = await roomsApi.current();
+        setCurrentRoom(current.room);
+        setError('You already belong to an active room. Return to it or leave it first.');
+        return;
+      }
       setError(getError(err, 'Could not create the room.'));
     }
+  }
+
+  async function leaveCurrentRoom() {
+    if (!currentRoom) return;
+    try {
+      await roomsApi.leave(currentRoom.id);
+      setCurrentRoom(null);
+      setSelected(null);
+      setMessage('You left the room.');
+      await refresh();
+    } catch (err) {
+      setError(getError(err, 'Could not leave the current room.'));
+    }
+  }
+
+  function returnToCurrentRoom() {
+    if (!currentRoom) return;
+    if (currentRoom.status === 'STARTED') {
+      window.location.assign(`/rooms/${currentRoom.id}/table`);
+      return;
+    }
+    showRoom(currentRoom.id);
   }
 
   async function run(action: () => Promise<unknown>, success?: string) {
@@ -69,12 +108,22 @@ export function RoomsPage() {
 
   const currentMember = selected?.members?.find((member) => member.userId === currentUserId);
   const currentUserIsHost = currentMember?.isHost ?? false;
+  const inviteableFriends = friends.filter((friend) => !selected?.members?.some((member) => member.userId === friend.id));
 
   return (
     <main>
       <h1>Poker rooms</h1>
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}
+
+      {currentRoom && <section aria-label="Current room">
+        <h2>Active room</h2>
+        <p>You are already in <strong>{currentRoom.name}</strong> ({currentRoom.status}).</p>
+        <button type="button" onClick={returnToCurrentRoom}>
+          {currentRoom.status === 'STARTED' ? 'Return to game' : 'Return to room'}
+        </button>
+        {currentRoom.status === 'WAITING' && <button type="button" onClick={leaveCurrentRoom}>Leave room</button>}
+      </section>}
 
       <section>
         <h2>Create a room</h2>
@@ -109,7 +158,15 @@ export function RoomsPage() {
           {currentMember && <button type="button" onClick={() => run(() => roomsApi.setReadiness(selected.id, !currentMember.ready), 'Readiness updated.')}>Toggle readiness</button>}
           <button type="button" onClick={() => run(() => roomsApi.leave(selected.id), 'Left room.')}>Leave</button>
           {currentUserIsHost && <>
-            <form onSubmit={(event) => { event.preventDefault(); run(() => roomsApi.invite(selected.id, inviteUserId), 'Invitation sent.'); }}><input aria-label="Friend user id" value={inviteUserId} onChange={(event) => setInviteUserId(event.target.value)} placeholder="Friend user id" required /><button type="submit">Invite friend</button></form>
+            <form onSubmit={(event) => { event.preventDefault(); run(() => roomsApi.invite(selected.id, inviteUserId), 'Invitation sent.'); }}>
+              <label htmlFor="friend-to-invite">Invite a friend</label>
+              <select id="friend-to-invite" value={inviteUserId} onChange={(event) => setInviteUserId(event.target.value)} required>
+                <option value="">Select a friend</option>
+                {inviteableFriends.map((friend) => <option key={friend.id} value={friend.id}>{friend.username}</option>)}
+              </select>
+              <button type="submit" disabled={inviteableFriends.length === 0}>Invite friend</button>
+              {inviteableFriends.length === 0 && <a href="/friends">Add a friend first</a>}
+            </form>
             <button type="button" onClick={() => run(() => roomsApi.start(selected.id), 'Room started.')}>Start room</button>
             <button type="button" onClick={() => run(() => roomsApi.close(selected.id), 'Room closed.')}>Close room</button>
           </>}

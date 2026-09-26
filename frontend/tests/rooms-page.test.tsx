@@ -20,10 +20,13 @@ describe('RoomsPage', () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch')
       .mockImplementationOnce(() => response({ rooms: [room] }))
       .mockImplementationOnce(() => response({ invitations: [] }))
+      .mockImplementationOnce(() => response([]))
       .mockImplementationOnce(() => response({ id: 'user-1' }))
+      .mockImplementationOnce(() => response({ room: null }))
       .mockImplementationOnce(() => response(room, 201))
       .mockImplementationOnce(() => response({ rooms: [room] }))
-      .mockImplementationOnce(() => response({ invitations: [] }));
+      .mockImplementationOnce(() => response({ invitations: [] }))
+      .mockImplementationOnce(() => response([]));
 
     render(<RoomsPage />);
     expect(await screen.findByText('Open Table')).toBeInTheDocument();

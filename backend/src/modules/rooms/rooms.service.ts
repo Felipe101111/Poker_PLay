@@ -99,6 +99,14 @@ async function assertHost(room: { hostId: string }, userId: string) {
 }
 
 export const roomsService = {
+  async getCurrentRoom(userId: string) {
+    const membership = await prisma.roomMember.findUnique({
+      where: { userId },
+      include: { room: { include: roomInclude } }
+    });
+    return membership ? toRoomView(membership.room, true) : null;
+  },
+
   async createRoom(input: CreateRoomInput, userId: string) {
     const existing = await prisma.roomMember.findUnique({ where: { userId } });
     if (existing) roomError(409, 'ACTIVE_ROOM_EXISTS', 'You already belong to an active room');

@@ -68,7 +68,7 @@ export function FriendsPage() {
       {error && <p role="alert">{error}</p>}
 
       <section>
-        <h2>Find players</h2>
+        <h2>Añadir amigo</h2>
         <form onSubmit={handleSearch}>
           <label htmlFor="query">Username</label>
           <input id="query" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -79,7 +79,7 @@ export function FriendsPage() {
             <li key={r.id}>
               {r.username}
               <button type="button" onClick={() => handleSendRequest(r.id)}>
-                Add friend
+                Añadir amigo
               </button>
             </li>
           ))}
