@@ -63,4 +63,17 @@ describe('startHand', () => {
     expect(hand.result).not.toBeNull();
     expect(hand.result!.revealedSeats).toEqual([]);
   });
+
+  it('auto-deals the remaining streets when every seat is all-in', () => {
+    const hand = startHand('user-1', 3, 100, 1, [4, 4, 4]);
+
+    submitAction(hand, { seatNumber: hand.seatToAct!, type: 'all-in', amount: null, bettingRound: 'preflop' });
+    submitAction(hand, { seatNumber: hand.seatToAct!, type: 'all-in', amount: null, bettingRound: 'preflop' });
+    submitAction(hand, { seatNumber: hand.seatToAct!, type: 'all-in', amount: null, bettingRound: 'preflop' });
+
+    expect(hand.bettingRound).toBe('complete');
+    expect(hand.communityCards).toHaveLength(5);
+    expect(hand.result?.revealedSeats).toHaveLength(3);
+    expect(hand.pots).toHaveLength(1);
+  });
 });

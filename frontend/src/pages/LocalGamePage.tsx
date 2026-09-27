@@ -86,7 +86,10 @@ export function LocalGamePage() {
         <section>
           <p>Betting round: {hand.bettingRound}</p>
           <p>Community cards: {hand.communityCards.map((c) => `${c.rank}${c.suit}`).join(' ') || '—'}</p>
-          <p>Pots: {hand.pots.map((p) => `${p.amount} chips`).join(', ') || '—'}</p>
+          <p>
+            Pots:{' '}
+            {hand.pots.map((pot, index) => `Pot ${index + 1}: ${pot.amount} chips (eligible: ${pot.eligibleSeats.join(', ')})`).join('; ') || '—'}
+          </p>
           <p>Seat to act: {hand.seatToAct ?? '—'}</p>
 
           {legalActions && hand.seatToAct === asSeat && legalActions.seatNumber === asSeat && (
@@ -152,6 +155,11 @@ export function LocalGamePage() {
               {hand.result.potsAwarded.map((pot, index) => (
                 <p key={index}>
                   Pot {index + 1}: {pot.amount} chips, winner(s): {pot.winners?.join(', ') || '—'}
+                </p>
+              ))}
+              {Object.entries(hand.result.handRanks).map(([seatNumber, rank]) => (
+                <p key={seatNumber}>
+                  Seat {seatNumber} hand category: {['high card', 'pair', 'two pair', 'three of a kind', 'straight', 'flush', 'full house', 'four of a kind', 'straight flush'][rank[0]] ?? 'unknown'}
                 </p>
               ))}
             </section>

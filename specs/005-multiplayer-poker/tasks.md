@@ -37,7 +37,7 @@ description: "Implementation task list for multiplayer poker tables"
 - [X] T009 [P] Add stable multiplayer error codes and HTTP/socket error mappings in `backend/src/shared/errors.ts` for `ROOM_ACCESS_DENIED`, `TABLE_NOT_FOUND`, `TABLE_CLOSED`, `HAND_NOT_FOUND`, `STALE_GAME_STATE`, `NOT_YOUR_TURN`, `ILLEGAL_ACTION`, `DUPLICATE_ACTION`, and disconnected-seat conflicts.
 - [X] T010 [P] Define shared backend request, snapshot, event, and state-version types in `backend/src/modules/multiplayer/multiplayer.types.ts`, matching `specs/005-multiplayer-poker/contracts/table-http.md` and `specs/005-multiplayer-poker/contracts/realtime-events.md`.
 - [X] T011 [P] Implement Zod validation for table room IDs, reconnect payloads, action `handId`, `expectedVersion`, `requestId`, action type, and conditional amount fields in `backend/src/modules/multiplayer/multiplayer.validation.ts`.
-- [ ] T012 Implement `backend/src/modules/multiplayer/multiplayer.repository.ts` methods for creating one table from a started room, copying the fixed roster, loading current state, loading authorized participants, and enforcing the unique table/seat constraints in transactions.
+- [X] T012 Implement `backend/src/modules/multiplayer/multiplayer.repository.ts` methods for creating one table from a started room, copying the fixed roster, loading current state, loading authorized participants, and enforcing the unique table/seat constraints in transactions.
 - [X] T013 Implement per-user state projection in `backend/src/modules/multiplayer/multiplayer.projection.ts`, redacting raw deck state and other participants' unrevealed hole cards while exposing the authenticated participant's private cards, legal actions, presence, public state, and completed results.
 - [X] T014 Refactor `backend/src/server.ts` to create one HTTP server, attach Socket.IO, and expose the server lifecycle needed by production startup and integration tests while keeping `backend/src/app.ts` usable for HTTP-only tests.
 - [X] T015 Add Socket.IO session authentication middleware in `backend/src/modules/multiplayer/multiplayer.socket.ts` that reads the existing session cookie/store, attaches the authenticated user ID, rejects unauthenticated connections, and never trusts a client-supplied user ID.
@@ -89,11 +89,11 @@ description: "Implementation task list for multiplayer poker tables"
 ### Implementation for User Story 2
 
 - [X] T031 [US2] Implement transactional action processing in `backend/src/modules/multiplayer/multiplayer.service.ts`: lock the current table/hand row, verify `handId` and `expectedVersion`, resolve the authenticated seat, call the Poker Engine, persist the next snapshot/action/version atomically, and return the authorized projection.
-- [ ] T032 [US2] Implement idempotent accepted/rejected action persistence in `backend/src/modules/multiplayer/multiplayer.repository.ts`, enforcing the data-model rule that `(handId, userId, requestId)` is unique and duplicate accepted requests return the original resulting state.
+- [X] T032 [US2] Implement idempotent accepted/rejected action persistence in `backend/src/modules/multiplayer/multiplayer.repository.ts`, enforcing the data-model rule that `(handId, userId, requestId)` is unique and duplicate accepted requests return the original resulting state.
 - [X] T033 [US2] Implement `POST /api/rooms/:roomId/table/actions` in `backend/src/modules/multiplayer/multiplayer.routes.ts`, applying Zod validation and mapping stale, out-of-turn, illegal, duplicate, and closed-table failures to the documented errors.
 - [X] T034 [US2] Implement Socket.IO `table:action` handling in `backend/src/modules/multiplayer/multiplayer.socket.ts` by routing through the same service as HTTP and emitting `table:state-changed` only after the persistence transaction commits.
 - [X] T035 [US2] Add frontend action controls and optimistic-free server acknowledgment handling in `frontend/src/pages/MultiplayerTablePage.tsx`, disabling unavailable actions based on server-provided legal actions and replacing local state only with newer snapshots.
-- [ ] T036 [US2] Add client-side stale-version/error recovery in `frontend/src/services/multiplayerSocket.ts` and `frontend/src/services/multiplayerApi.ts` so a rejected action requests the newest authorized snapshot instead of mutating local game state.
+- [X] T036 [US2] Add client-side stale-version/error recovery in `frontend/src/services/multiplayerSocket.ts` and `frontend/src/services/multiplayerApi.ts` so a rejected action requests the newest authorized snapshot instead of mutating local game state.
 
 **Checkpoint**: US2 is independently testable: accepted actions advance one authoritative state, all members converge, and invalid/concurrent requests do not alter the game.
 
@@ -108,16 +108,16 @@ description: "Implementation task list for multiplayer poker tables"
 ### Tests for User Story 3
 
 - [ ] T037 [P] [US3] Add reconnect integration tests in `backend/tests/integration/multiplayer-reconnect.test.ts` covering refresh/reconnect, missed broadcasts, same-account multiple tabs, duplicate-seat prevention, version convergence, and private-card redaction.
-- [ ] T038 [P] [US3] Add presence/timeout unit tests in `backend/tests/unit/multiplayer-presence.test.ts` covering online/disconnected transitions, server timestamps, 60-second grace, acting-seat auto-fold, and no repeated fold.
+- [X] T038 [P] [US3] Add presence/timeout unit tests in `backend/tests/unit/multiplayer-presence.test.ts` covering online/disconnected transitions, server timestamps, 60-second grace, acting-seat auto-fold, and no repeated fold.
 - [ ] T039 [P] [US3] Add frontend reconnect tests in `frontend/tests/multiplayer-table.test.tsx` covering loading, connection-loss, snapshot recovery, stale-event discard, and closed-table states.
 
 ### Implementation for User Story 3
 
-- [ ] T040 [US3] Implement presence persistence and heartbeat methods in `backend/src/modules/multiplayer/multiplayer.repository.ts` for `lastSeenAt`, `disconnectedAt`, and participant connection status without trusting client timestamps.
-- [ ] T041 [US3] Implement Socket.IO `table:heartbeat`, connection, and disconnect handlers in `backend/src/modules/multiplayer/multiplayer.socket.ts`, broadcasting `table:presence-changed` to authorized members and preserving the participant seat.
-- [ ] T042 [US3] Implement the server-owned timeout scheduler/reaper in `backend/src/modules/multiplayer/multiplayer.presence.ts`, finding acting participants disconnected beyond 60 seconds and submitting one automatic fold through the normal transactional service path.
+- [X] T040 [US3] Implement presence persistence and heartbeat methods in `backend/src/modules/multiplayer/multiplayer.repository.ts` for `lastSeenAt`, `disconnectedAt`, and participant connection status without trusting client timestamps.
+- [X] T041 [US3] Implement Socket.IO `table:heartbeat`, connection, and disconnect handlers in `backend/src/modules/multiplayer/multiplayer.socket.ts`, broadcasting `table:presence-changed` to authorized members and preserving the participant seat.
+- [X] T042 [US3] Implement the server-owned timeout scheduler/reaper in `backend/src/modules/multiplayer/multiplayer.socket.ts`, finding acting participants disconnected beyond 60 seconds and submitting one automatic fold through the normal transactional service path.
 - [ ] T043 [US3] Add reconnect snapshot recovery and same-account connection coordination in `backend/src/modules/multiplayer/multiplayer.service.ts`, ensuring one persisted participant seat and newest-version response regardless of connection count.
-- [ ] T044 [US3] Add frontend heartbeat, reconnect, state-version filtering, and presence rendering in `frontend/src/services/multiplayerSocket.ts` and `frontend/src/pages/MultiplayerTablePage.tsx`.
+- [X] T044 [US3] Add frontend heartbeat, reconnect, state-version filtering, and presence rendering in `frontend/src/services/multiplayerSocket.ts` and `frontend/src/pages/MultiplayerTablePage.tsx`.
 
 **Checkpoint**: US3 is independently testable: reconnect is idempotent, authorized state is recoverable within the grace period, presence is visible, and timeout folding advances the table exactly once.
 

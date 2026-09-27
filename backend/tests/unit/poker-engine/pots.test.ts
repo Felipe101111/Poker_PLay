@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { HandState, Seat } from '../../../src/poker-engine/types.js';
 import { computePots } from '../../../src/poker-engine/pots.js';
+import { resolveShowdown } from '../../../src/poker-engine/engine.js';
 
 const seat = (seatNumber: number, totalContribution: number, folded = false): Seat => ({
   seatNumber,
@@ -48,5 +49,27 @@ describe('computePots', () => {
       { amount: 30, eligibleSeats: [2, 3], winners: null },
       { amount: 10, eligibleSeats: [3], winners: null }
     ]);
+  });
+
+  it('splits an odd tied pot to the seat immediately left of the dealer', () => {
+    const hand = handWithSeats([
+      { ...seat(1, 2), stack: 0, holeCards: [{ rank: '2', suit: 'h' }, { rank: '3', suit: 'h' }] },
+      { ...seat(2, 3), stack: 0, holeCards: [{ rank: '4', suit: 'h' }, { rank: '5', suit: 'h' }] }
+    ]);
+    hand.dealerSeat = 1;
+    hand.communityCards = [
+      { rank: 'A', suit: 's' },
+      { rank: 'K', suit: 's' },
+      { rank: 'Q', suit: 's' },
+      { rank: 'J', suit: 's' },
+      { rank: 'T', suit: 's' }
+    ];
+    hand.bettingRound = 'river';
+
+    resolveShowdown(hand);
+
+    expect(hand.pots[0].winners).toEqual([1, 2]);
+    expect(hand.seats.find((seat) => seat.seatNumber === 2)?.stack).toBe(3);
+    expect(hand.seats.find((seat) => seat.seatNumber === 1)?.stack).toBe(2);
   });
 });

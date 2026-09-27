@@ -91,20 +91,20 @@ Extends the existing web app split: `backend/src/poker-engine/` (pure engine, no
 
 ### Tests for User Story 2 ⚠️
 
-- [ ] T021 [P] [US2] Unit test: `computeLegalActions` returns the correct action set and `callAmount`/`minBetOrRaise`/`maxBetOrRaise` for check/call/bet/raise scenarios, including an all-in call when the stack is smaller than the amount owed, in `backend/tests/unit/poker-engine/betting.test.ts`
-- [ ] T022 [P] [US2] Unit test: `applyAction` rejects an out-of-turn seat, an illegal `check` when a call is owed, and a `raise` below `minRaiseIncrement`, in all cases without mutating `HandState` (FR-006), in `backend/tests/unit/poker-engine/betting.test.ts`
-- [ ] T023 [P] [US2] Unit test: once every active seat matches `currentBet` or is all-in, the engine deals the correct number of community cards (flop 3, turn 1, river 1) and starts the next `bettingRound` automatically (FR-007), in `backend/tests/unit/poker-engine/engine.test.ts`
-- [ ] T024 [P] [US2] Unit test: when every seat but one has folded, the hand ends immediately with a pot award and `bettingRound` becomes `complete` without a showdown (FR-008), in `backend/tests/unit/poker-engine/engine.test.ts`
-- [ ] T025 [P] [US2] Contract test for `POST /api/local-games/current/actions` (`200` valid action with updated `legalActions`, `400 ILLEGAL_ACTION` with a specific reason, `404` when no active hand) per contracts/local-games-api.md in `backend/tests/contract/local-games.actions.test.ts`
-- [ ] T026 [P] [US2] Integration test: play a full hand's actions through every street via the HTTP API and confirm the betting-round/community-card progression matches the engine's expected sequence, in `backend/tests/integration/local-games.betting-flow.test.ts`
+- [X] T021 [P] [US2] Unit test: `computeLegalActions` returns the correct action set and `callAmount`/`minBetOrRaise`/`maxBetOrRaise` for check/call/bet/raise scenarios, including an all-in call when the stack is smaller than the amount owed, in `backend/tests/unit/poker-engine/betting.test.ts`
+- [X] T022 [P] [US2] Unit test: `applyAction` rejects an out-of-turn seat, an illegal `check` when a call is owed, and a `raise` below `minRaiseIncrement`, in all cases without mutating `HandState` (FR-006), in `backend/tests/unit/poker-engine/betting.test.ts`
+- [X] T023 [P] [US2] Unit test: once every active seat matches `currentBet` or is all-in, the engine deals the correct number of community cards (flop 3, turn 1, river 1) and starts the next `bettingRound` automatically (FR-007), in `backend/tests/unit/poker-engine/engine.test.ts`
+- [X] T024 [P] [US2] Unit test: when every seat but one has folded, the hand ends immediately with a pot award and `bettingRound` becomes `complete` without a showdown (FR-008), in `backend/tests/unit/poker-engine/engine.test.ts`
+- [X] T025 [P] [US2] Contract test for `POST /api/local-games/current/actions` (`200` valid action with updated `legalActions`, `400 ILLEGAL_ACTION` with a specific reason, `404` when no active hand) per contracts/local-games-api.md in `backend/tests/contract/local-games.actions.test.ts`
+- [X] T026 [P] [US2] Integration test: play a full hand's actions through every street via the HTTP API and confirm the betting-round/community-card progression matches the engine's expected sequence, in `backend/tests/integration/local-games.betting-flow.test.ts`
 
 ### Implementation for User Story 2
 
-- [ ] T027 [US2] Implement `computeLegalActions(handState)` in `backend/src/poker-engine/betting.ts` (depends on T004)
-- [ ] T028 [US2] Implement `applyAction(handState, action)` — validates via `computeLegalActions`, updates stacks/`streetContribution`/`totalContribution`/`currentBet`/`minRaiseIncrement`, and advances `seatToAct` — in `backend/src/poker-engine/betting.ts` (depends on T027)
-- [ ] T029 [US2] Implement `isRoundComplete(handState)` and the automatic street-advance logic (including the immediate pot award when only one seat remains, FR-008) in `backend/src/poker-engine/engine.ts` (depends on T028, T006)
-- [ ] T030 [US2] Implement the `POST /api/local-games/current/actions` route, returning the updated `legalActions` per FR-017, in `backend/src/modules/local-games/local-games.routes.ts` (depends on T029, T017)
-- [ ] T031 [P] [US2] Add action-submission controls to `LocalGamePage` — buttons driven by the response's `legalActions`, with the bet/raise amount input constrained to `minBetOrRaise`/`maxBetOrRaise` — in `frontend/src/pages/LocalGamePage.tsx` (depends on T020)
+- [X] T027 [US2] Implement `computeLegalActions(handState)` in `backend/src/poker-engine/betting.ts` (depends on T004)
+- [X] T028 [US2] Implement `applyAction(handState, action)` — validates via `computeLegalActions`, updates stacks/`streetContribution`/`totalContribution`/`currentBet`/`minRaiseIncrement`, and advances `seatToAct` — in `backend/src/poker-engine/betting.ts` (depends on T027)
+- [X] T029 [US2] Implement `isRoundComplete(handState)` and the automatic street-advance logic (including the immediate pot award when only one seat remains, FR-008) in `backend/src/poker-engine/engine.ts` (depends on T028, T006)
+- [X] T030 [US2] Implement the `POST /api/local-games/current/actions` route, returning the updated `legalActions` per FR-017, in `backend/src/modules/local-games/local-games.routes.ts` (depends on T029, T017)
+- [X] T031 [P] [US2] Add action-submission controls to `LocalGamePage` — buttons driven by the response's `legalActions`, with the bet/raise amount input constrained to `minBetOrRaise`/`maxBetOrRaise` — in `frontend/src/pages/LocalGamePage.tsx` (depends on T020)
 
 **Checkpoint**: At this point, User Stories 1 AND 2 both work — a full hand's betting can be played through the API
 
@@ -118,17 +118,17 @@ Extends the existing web app split: `backend/src/poker-engine/` (pure engine, no
 
 ### Tests for User Story 3 ⚠️
 
-- [ ] T032 [P] [US3] Unit test: `evaluate7CardHand` correctly ranks every standard hand category (high card, pair, two pair, three of a kind, straight, flush, full house, four of a kind, straight flush) from a 7-card set, in `backend/tests/unit/poker-engine/hand-evaluator.test.ts`
-- [ ] T033 [P] [US3] Unit test: a tied showdown splits the pot evenly between tied seats, assigning any single leftover chip to the tied seat closest to the left of the dealer (per the documented odd-chip rule), in `backend/tests/unit/poker-engine/hand-evaluator.test.ts`
-- [ ] T034 [P] [US3] Integration test: play a full hand with no all-in to showdown via the HTTP API and confirm the winner, revealed hole cards for every non-folded seat, and awarded pot amount are correct, in `backend/tests/integration/local-games.showdown.test.ts`
+- [X] T032 [P] [US3] Unit test: `evaluate7CardHand` correctly ranks every standard hand category (high card, pair, two pair, three of a kind, straight, flush, full house, four of a kind, straight flush) from a 7-card set, in `backend/tests/unit/poker-engine/hand-evaluator.test.ts`
+- [X] T033 [P] [US3] Unit test: a tied showdown splits the pot evenly between tied seats, assigning any single leftover chip to the tied seat closest to the left of the dealer (per the documented odd-chip rule), in `backend/tests/unit/poker-engine/hand-evaluator.test.ts`
+- [X] T034 [P] [US3] Integration test: play a full hand with no all-in to showdown via the HTTP API and confirm the winner, revealed hole cards for every non-folded seat, and awarded pot amount are correct, in `backend/tests/integration/local-games.showdown.test.ts`
 
 ### Implementation for User Story 3
 
-- [ ] T035 [US3] Implement `evaluate7CardHand(holeCards, communityCards)` (best-of-21-combinations, per research.md) and `compareHandRanks` in `backend/src/poker-engine/hand-evaluator.ts` (depends on T004)
-- [ ] T036 [US3] Implement `computePots(handState)` — the general main-pot/side-pot algorithm from each seat's `totalContribution` (data-model.md `Pot`) — in `backend/src/poker-engine/pots.ts` (depends on T004); this same function is exercised further by User Story 4's multi-pot tests
-- [ ] T037 [US3] Implement `resolveShowdown(handState)` in `backend/src/poker-engine/engine.ts` (depends on T035, T036): reveals eligible seats' hole cards, ranks each remaining hand, awards each pot (splitting ties per FR-010), and populates `HandState.result`
-- [ ] T038 [US3] Ensure `GET /api/local-games/current` includes `pots` and `result` once `bettingRound` is `showdown`/`complete`, per contracts/local-games-api.md, in `backend/src/modules/local-games/local-games.routes.ts` (depends on T037, T019)
-- [ ] T039 [P] [US3] Add the showdown/result display (revealed hole cards, hand ranking, winner, pot amounts) to `LocalGamePage` in `frontend/src/pages/LocalGamePage.tsx` (depends on T031)
+- [X] T035 [US3] Implement `evaluate7CardHand(holeCards, communityCards)` (best-of-21-combinations, per research.md) and `compareHandRanks` in `backend/src/poker-engine/hand-evaluator.ts` (depends on T004)
+- [X] T036 [US3] Implement `computePots(handState)` — the general main-pot/side-pot algorithm from each seat's `totalContribution` (data-model.md `Pot`) — in `backend/src/poker-engine/pots.ts` (depends on T004); this same function is exercised further by User Story 4's multi-pot tests
+- [X] T037 [US3] Implement `resolveShowdown(handState)` in `backend/src/poker-engine/engine.ts` (depends on T035, T036): reveals eligible seats' hole cards, ranks each remaining hand, awards each pot (splitting ties per FR-010), and populates `HandState.result`
+- [X] T038 [US3] Ensure `GET /api/local-games/current` includes `pots` and `result` once `bettingRound` is `showdown`/`complete`, per contracts/local-games-api.md, in `backend/src/modules/local-games/local-games.routes.ts` (depends on T037, T019)
+- [X] T039 [P] [US3] Add the showdown/result display (revealed hole cards, hand ranking, winner, pot amounts) to `LocalGamePage` in `frontend/src/pages/LocalGamePage.tsx` (depends on T031)
 
 **Checkpoint**: At this point, User Stories 1, 2, AND 3 are all independently functional — a full hand can be played to a correct result
 
@@ -142,13 +142,13 @@ Extends the existing web app split: `backend/src/poker-engine/` (pure engine, no
 
 ### Tests for User Story 4 ⚠️
 
-- [ ] T040 [P] [US4] Unit test: `computePots` builds a main pot plus side pot(s) with correct amounts and `eligibleSeats` for 3+ seats with unequal `totalContribution` (multiple distinct all-in levels), in `backend/tests/unit/poker-engine/pots.test.ts`
-- [ ] T041 [P] [US4] Integration test: when every remaining seat is all-in before the river, the engine automatically deals the rest of the community cards and reaches showdown without requesting further actions (FR-011), in `backend/tests/integration/local-games.all-in.test.ts`
+- [X] T040 [P] [US4] Unit test: `computePots` builds a main pot plus side pot(s) with correct amounts and `eligibleSeats` for 3+ seats with unequal `totalContribution` (multiple distinct all-in levels), in `backend/tests/unit/poker-engine/pots.test.ts`
+- [X] T041 [P] [US4] Integration test: when every remaining seat is all-in before the river, the engine automatically deals the rest of the community cards and reaches showdown without requesting further actions (FR-011), in `backend/tests/integration/local-games.all-in.test.ts`
 
 ### Implementation for User Story 4
 
-- [ ] T042 [US4] Implement the "every remaining seat is all-in ⇒ auto-deal straight through to showdown" branch in the street-advance logic in `backend/src/poker-engine/engine.ts` (depends on T029, T037)
-- [ ] T043 [P] [US4] Add all-in/side-pot indicators (which seats are eligible for each pot) to `LocalGamePage` in `frontend/src/pages/LocalGamePage.tsx` (depends on T039)
+- [X] T042 [US4] Implement the "every remaining seat is all-in ⇒ auto-deal straight through to showdown" branch in the street-advance logic in `backend/src/poker-engine/engine.ts` (depends on T029, T037)
+- [X] T043 [P] [US4] Add all-in/side-pot indicators (which seats are eligible for each pot) to `LocalGamePage` in `frontend/src/pages/LocalGamePage.tsx` (depends on T039)
 
 **Checkpoint**: All 4 user stories are independently functional
 
@@ -158,10 +158,10 @@ Extends the existing web app split: `backend/src/poker-engine/` (pure engine, no
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T044 [P] Run every quickstart.md validation scenario end-to-end against a local environment and record results
-- [ ] T045 [P] Document the Poker Engine's module boundary (pure, dependency-free) and the `/api/local-games/*` endpoints (including abandon) in `backend/README.md`
-- [ ] T046 Security/architecture review pass: confirm no response ever includes another seat's hole cards before showdown or the remaining `deck` (Constitution P4), confirm every action is re-validated server-side regardless of client state (FR-013), and confirm `backend/src/poker-engine/` has zero Express/Prisma/zod imports (Constitution P7)
-- [ ] T047 [P] Add unit tests for the all-in-raise vs. partial-all-in-call boundary (raising for exactly the remaining stack vs. calling for less than the amount owed) in `backend/tests/unit/poker-engine/betting.test.ts`
+- [X] T044 [P] Run every quickstart.md validation scenario end-to-end against a local environment and record results
+- [X] T045 [P] Document the Poker Engine's module boundary (pure, dependency-free) and the `/api/local-games/*` endpoints (including abandon) in `backend/README.md`
+- [X] T046 Security/architecture review pass: confirm no response ever includes another seat's hole cards before showdown or the remaining `deck` (Constitution P4), confirm every action is re-validated server-side regardless of client state (FR-013), and confirm `backend/src/poker-engine/` has zero Express/Prisma/zod imports (Constitution P7)
+- [X] T047 [P] Add unit tests for the all-in-raise vs. partial-all-in-call boundary (raising for exactly the remaining stack vs. calling for less than the amount owed) in `backend/tests/unit/poker-engine/betting.test.ts`
 
 ---
 

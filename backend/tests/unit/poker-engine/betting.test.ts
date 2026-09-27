@@ -69,4 +69,39 @@ describe('applyAction', () => {
     }
     expect(JSON.stringify(hand)).toBe(before);
   });
+
+  it('distinguishes an exact all-in raise from a short all-in call', () => {
+    const raisingHand = startHand('u1', 3, 100, 1);
+    const raisingSeat = raisingHand.seats.find((seat) => seat.seatNumber === raisingHand.seatToAct)!;
+    raisingSeat.stack = 4;
+    const raisingLegal = computeLegalActions(raisingHand)!;
+
+    expect(raisingLegal.actions).toContain('all-in');
+    expect(raisingLegal.actions).toContain('raise');
+    applyAction(raisingHand, {
+      seatNumber: raisingSeat.seatNumber,
+      type: 'all-in',
+      amount: null,
+      bettingRound: 'preflop'
+    });
+    expect(raisingHand.currentBet).toBe(4);
+    expect(raisingSeat.isAllIn).toBe(true);
+
+    const callingHand = startHand('u1', 3, 100, 1);
+    const callingSeat = callingHand.seats.find((seat) => seat.seatNumber === callingHand.seatToAct)!;
+    callingSeat.stack = 1;
+    const callingLegal = computeLegalActions(callingHand)!;
+
+    expect(callingLegal.actions).toContain('call');
+    expect(callingLegal.actions).not.toContain('raise');
+    applyAction(callingHand, {
+      seatNumber: callingSeat.seatNumber,
+      type: 'call',
+      amount: null,
+      bettingRound: 'preflop'
+    });
+    expect(callingSeat.stack).toBe(0);
+    expect(callingSeat.isAllIn).toBe(true);
+    expect(callingHand.currentBet).toBe(2);
+  });
 });

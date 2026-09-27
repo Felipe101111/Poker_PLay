@@ -1,0 +1,15 @@
+{
+  "version": "preflop-v1",
+  "recommendations": {
+    "SIX_MAX_100BB_PREFLOP:BTN": {
+      "actions": [{ "action": { "type": "raise", "amountBB": 2.5 }, "frequency": 0.6 }, { "action": { "type": "fold" }, "frequency": 0.4 }],
+      "assumptions": ["Six-player no-limit hold'em", "100 BB effective stack", "Standard 1/2 blind context"],
+      "factors": ["position", "effective stack", "prior action", "blind context"]
+    },
+    "SIX_MAX_100BB_PREFLOP:SB": {
+      "actions": [{ "action": { "type": "raise", "amountBB": 3 }, "frequency": 0.5 }, { "action": { "type": "fold" }, "frequency": 0.5 }],
+      "assumptions": ["Six-player no-limit hold'em", "100 BB effective stack", "Standard 1/2 blind context"],
+      "factors": ["position", "effective stack", "blind context"]
+    }
+  }
+}

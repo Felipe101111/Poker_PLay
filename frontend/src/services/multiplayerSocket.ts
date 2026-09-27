@@ -19,6 +19,12 @@ export interface TableErrorEvent {
   stateVersion?: number;
 }
 
+export interface TablePresenceEvent {
+  roomId: string;
+  userId: string;
+  connectionStatus: 'ONLINE' | 'DISCONNECTED';
+}
+
 export function createMultiplayerSocket() {
   return io(SOCKET_URL, { withCredentials: true, autoConnect: false });
 }
@@ -36,6 +42,6 @@ export function sendTableHeartbeat(socket: Socket, roomId: string) {
   socket.emit('table:heartbeat', { roomId });
 }
 
-export function sendTableAction(socket: Socket, roomId: string, input: TableActionInput) {
-  socket.emit('table:action', { roomId, ...input });
+export function sendTableAction(socket: Socket, roomId: string, input: TableActionInput, acknowledge?: (response: { ok: boolean; code?: string; message?: string }) => void) {
+  socket.emit('table:action', { roomId, ...input }, acknowledge);
 }

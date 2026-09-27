@@ -22,6 +22,7 @@ export interface PotView {
 export interface HandResultView {
   potsAwarded: PotView[];
   revealedSeats: number[];
+  handRanks: Record<string, number[]>;
 }
 
 export interface LegalActionsView {

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { ApiRequestError } from '../services/apiClient';
 import { multiplayerApi, type ActionType, type TableView } from '../services/multiplayerApi';
-import { createMultiplayerSocket, joinTable, leaveTable, sendTableAction, sendTableHeartbeat, type TableErrorEvent, type TableSnapshotEvent, type TableStateChangedEvent } from '../services/multiplayerSocket';
+import { createMultiplayerSocket, joinTable, leaveTable, sendTableAction, sendTableHeartbeat, type TableErrorEvent, type TablePresenceEvent, type TableSnapshotEvent, type TableStateChangedEvent } from '../services/multiplayerSocket';
 
 export function MultiplayerTablePage() {
   const { roomId = '' } = useParams();
@@ -30,13 +30,34 @@ export function MultiplayerTablePage() {
       setTable((current) => !current || event.stateVersion >= current.stateVersion ? event.table : current);
     };
     const acceptStateChange = (event: TableStateChangedEvent) => acceptSnapshot(event);
-    const acceptError = (event: TableErrorEvent) => setError(event.message);
+    const recover = () => {
+      multiplayerApi.reconnect(roomId, 0).then((response) => {
+        if (!cancelled) setTable((current) => !current || response.table.stateVersion >= current.stateVersion ? response.table : current);
+      }).catch((err: unknown) => {
+        if (!cancelled) setError(err instanceof ApiRequestError ? err.message : 'Could not recover the table.');
+      });
+    };
+    const acceptError = (event: TableErrorEvent) => {
+      if (event.code === 'STALE_GAME_STATE' || event.code === 'NOT_YOUR_TURN') recover();
+      else setError(event.message);
+    };
+    const acceptPresence = (event: TablePresenceEvent) => {
+      if (event.roomId !== roomId) return;
+      setTable((current) => current ? {
+        ...current,
+        currentHand: current.currentHand ? {
+          ...current.currentHand,
+          players: current.currentHand.players.map((player) => player.userId === event.userId ? { ...player, connectionStatus: event.connectionStatus } : player)
+        } : null
+      } : current);
+    };
     const heartbeat = window.setInterval(() => sendTableHeartbeat(socket, roomId), 25_000);
     socket.on('connect', () => setConnected(true));
     socket.on('disconnect', () => setConnected(false));
     socket.on('table:snapshot', acceptSnapshot);
     socket.on('table:state-changed', acceptStateChange);
     socket.on('table:error', acceptError);
+    socket.on('table:presence-changed', acceptPresence);
 
     return () => {
       cancelled = true;
@@ -56,6 +77,12 @@ export function MultiplayerTablePage() {
       requestId: crypto.randomUUID(),
       type,
       ...((type === 'bet' || type === 'raise') && amount ? { amount: Number(amount) } : {})
+    }, (response) => {
+      if (!response.ok && (response.code === 'STALE_GAME_STATE' || response.code === 'NOT_YOUR_TURN')) {
+        void multiplayerApi.reconnect(roomId, table.stateVersion).then((result) => setTable((current) => !current || result.table.stateVersion >= current.stateVersion ? result.table : current));
+      } else if (!response.ok) {
+        setError(response.message ?? 'Action rejected.');
+      }
     });
   }
 

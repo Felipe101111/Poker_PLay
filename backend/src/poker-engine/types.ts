@@ -55,6 +55,7 @@ export interface LegalActions {
 export interface HandResult {
   potsAwarded: Pot[];
   revealedSeats: number[];
+  handRanks: Record<number, number[]>;
 }
 
 // HandState is the implementation of spec.md's "LocalHand" entity.

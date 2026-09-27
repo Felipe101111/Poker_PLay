@@ -2,7 +2,8 @@ import { MultiplayerActionType, RoomStatus } from '@prisma/client';
 import { prisma } from '../../db/prisma/client.js';
 import { ApiError } from '../../shared/errors.js';
 import { startHand, submitAction } from '../../poker-engine/engine.js';
-import { createTableFromStartedRoom, findTableByRoom, findTableForUser, readHandState } from './multiplayer.repository.js';
+import { createTableFromStartedRoom, findTableByRoom, findTableForUser, findExpiredDisconnectedParticipants, markParticipantConnected, markParticipantDisconnected, readHandState, recordRejectedAction, touchParticipant } from './multiplayer.repository.js';
+import { systemPresenceClock, shouldAutoFoldDisconnectedActingSeat } from './multiplayer.presence.js';
 import { projectTable } from './multiplayer.projection.js';
 import type { ReconnectInput, TableActionInput } from './multiplayer.validation.js';
 
@@ -47,13 +48,48 @@ export const multiplayerService = {
     const table = await loadOrBootstrap(roomId);
     const participant = table.participants.find((item) => item.userId === userId);
     if (!participant) fail(403, 'ROOM_ACCESS_DENIED', 'You are not a table participant');
-    await prisma.tableParticipant.update({
-      where: { id: participant.id },
-      data: { connectionStatus: participant.eligibleForNextHand ? 'ONLINE' : 'ELIMINATED', lastSeenAt: new Date(), disconnectedAt: null }
-    });
+    await markParticipantConnected(table.id, userId, systemPresenceClock.now());
     const refreshed = await findTableForUser(roomId, userId);
     if (!refreshed) fail(404, 'TABLE_NOT_FOUND', 'No such table');
     return { table: projectTable(refreshed, userId) };
+  },
+
+  async heartbeat(roomId: string, userId: string) {
+    await assertStartedRoomMember(roomId, userId);
+    const table = await findTableForUser(roomId, userId);
+    if (!table) fail(404, 'TABLE_NOT_FOUND', 'No such table');
+    await touchParticipant(table.id, userId, systemPresenceClock.now());
+  },
+
+  async disconnect(roomId: string, userId: string) {
+    const table = await findTableForUser(roomId, userId);
+    if (!table) return;
+    await markParticipantDisconnected(table.id, userId, systemPresenceClock.now());
+  },
+
+  async reapExpiredParticipants() {
+    const now = systemPresenceClock.now();
+    const expired = await findExpiredDisconnectedParticipants(now);
+    const foldedRooms = new Set<string>();
+    for (const participant of expired) {
+      const table = participant.table;
+      const hand = table.currentHand ? readHandState(table.currentHand.stateSnapshot) : null;
+      if (!hand || !shouldAutoFoldDisconnectedActingSeat({ disconnectedAt: participant.disconnectedAt, seatNumber: participant.seatNumber, actingSeat: hand.seatToAct }, now)) {
+        continue;
+      }
+      try {
+        await this.act(table.roomId, participant.userId, {
+          handId: table.currentHand!.id,
+          expectedVersion: table.stateVersion,
+          requestId: `timeout-fold:${table.currentHand!.id}:${participant.userId}`,
+          type: 'fold'
+        });
+        foldedRooms.add(table.roomId);
+      } catch (error) {
+        if (!(error instanceof ApiError && ['NOT_YOUR_TURN', 'STALE_GAME_STATE', 'TABLE_CLOSED'].includes(error.code))) throw error;
+      }
+    }
+    return [...foldedRooms];
   },
 
   async act(roomId: string, userId: string, input: TableActionInput) {
@@ -61,6 +97,7 @@ export const multiplayerService = {
     const table = await loadOrBootstrap(roomId);
     if (table.status === 'CLOSED') fail(409, 'TABLE_CLOSED', 'This table is closed');
 
+    let rejection: ApiError | null = null;
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "multiplayer_tables" WHERE "id" = ${table.id} FOR UPDATE`;
       const locked = await findTableByRoom(roomId, tx);
@@ -69,7 +106,11 @@ export const multiplayerService = {
       const duplicate = await tx.tableAction.findUnique({
         where: { handId_userId_requestId: { handId: locked.currentHand.id, userId, requestId: input.requestId } }
       });
-      if (duplicate?.accepted) return;
+      if (duplicate) {
+        if (duplicate.accepted) return;
+        rejection = new ApiError(409, (duplicate.rejectionCode as ConstructorParameters<typeof ApiError>[1]) ?? 'DUPLICATE_ACTION', 'This action was already rejected');
+        return;
+      }
       if (locked.currentHand.id !== input.handId || locked.currentHand.stateVersion !== input.expectedVersion) {
         fail(409, 'STALE_GAME_STATE', 'The table has advanced. Refresh the current table state.');
       }
@@ -88,7 +129,17 @@ export const multiplayerService = {
         });
       } catch (error) {
         if (error instanceof ApiError && error.code === 'ILLEGAL_ACTION') {
-          fail(409, 'ILLEGAL_ACTION', error.message);
+          rejection = new ApiError(409, 'ILLEGAL_ACTION', error.message);
+          await recordRejectedAction({
+            handId: locked.currentHand.id,
+            requestId: input.requestId,
+            userId,
+            seatNumber: participant.seatNumber,
+            actionType: input.type.toUpperCase().replace('-', '_') as MultiplayerActionType,
+            amount: input.amount,
+            rejectionCode: 'ILLEGAL_ACTION'
+          }, tx);
+          return;
         }
         throw error;
       }
@@ -160,6 +211,8 @@ export const multiplayerService = {
         });
       }
     });
+
+    if (rejection) throw rejection;
 
     const updated = await findTableForUser(roomId, userId);
     if (!updated) fail(404, 'TABLE_NOT_FOUND', 'No such table');

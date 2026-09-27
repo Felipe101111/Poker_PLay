@@ -138,7 +138,7 @@ function awardWithoutShowdown(hand: HandState, winner: Seat): void {
   const pot = { amount, eligibleSeats: [winner.seatNumber], winners: [winner.seatNumber] };
   awardPot(hand, amount, [winner.seatNumber]);
   hand.pots = [pot];
-  hand.result = { potsAwarded: [pot], revealedSeats: [] };
+  hand.result = { potsAwarded: [pot], revealedSeats: [], handRanks: {} };
   hand.bettingRound = 'complete';
   hand.seatToAct = null;
 }
@@ -171,9 +171,14 @@ export function resolveShowdown(hand: HandState): void {
   }
 
   hand.pots = pots;
+  const handRanks: Record<number, number[]> = {};
+  for (const [seatNumber, rank] of rankCache) {
+    handRanks[seatNumber] = rank;
+  }
   hand.result = {
     potsAwarded: pots,
-    revealedSeats: hand.seats.filter((s) => !s.folded).map((s) => s.seatNumber)
+    revealedSeats: hand.seats.filter((s) => !s.folded).map((s) => s.seatNumber),
+    handRanks
   };
   hand.bettingRound = 'complete';
   hand.seatToAct = null;

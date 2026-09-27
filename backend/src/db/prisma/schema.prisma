@@ -31,6 +31,8 @@ model User {
   receivedRoomInvitations RoomInvitation[] @relation("InvitationRecipient")
   tableParticipants       TableParticipant[]
   tableActions            TableAction[]
+  trainingSessions        TrainingSession[]
+  trainingDecisions       TrainingDecision[]
 
   @@map("users")
 }
@@ -237,6 +239,93 @@ model TableAction {
   @@unique([handId, sequence])
   @@index([handId, createdAt])
   @@map("table_actions")
+}
+
+enum TrainingSessionFormat {
+  SIX_MAX_100BB_PREFLOP
+}
+
+enum TrainingSessionStatus {
+  ACTIVE
+  COMPLETED
+}
+
+enum TrainingEvaluationStatus {
+  EVALUATED
+  UNAVAILABLE
+}
+
+enum TrainingEvaluationCategory {
+  PREFERRED
+  ACCEPTABLE_MIXED
+  MARGINAL
+  SIGNIFICANT_DEVIATION
+}
+
+model TrainingSession {
+  id                String                @id @default(uuid())
+  userId            String
+  format            TrainingSessionFormat @default(SIX_MAX_100BB_PREFLOP)
+  status            TrainingSessionStatus @default(ACTIVE)
+  currentScenarioId String?               @unique
+  startedAt         DateTime              @default(now())
+  updatedAt         DateTime              @updatedAt
+  completedAt       DateTime?
+
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentScenario TrainingScenario? @relation("CurrentTrainingScenario", fields: [currentScenarioId], references: [id])
+  scenarios        TrainingScenario[] @relation("SessionScenarios")
+
+  @@index([userId, status])
+  @@map("training_sessions")
+}
+
+model TrainingScenario {
+  id               String   @id @default(uuid())
+  sessionId        String
+  sequence         Int
+  generationSeed   Int
+  engineSnapshot   Json
+  holeCards        Json
+  position         String
+  tableSize        Int
+  effectiveStackBB Int
+  blindContext     Json
+  priorActions     Json
+  legalActions     Json
+  strategyKey      String
+  strategyVersion  String?
+  createdAt        DateTime @default(now())
+
+  session  TrainingSession  @relation("SessionScenarios", fields: [sessionId], references: [id], onDelete: Cascade)
+  currentFor TrainingSession? @relation("CurrentTrainingScenario")
+  decisions TrainingDecision[]
+
+  @@unique([sessionId, sequence])
+  @@index([sessionId, createdAt])
+  @@map("training_scenarios")
+}
+
+model TrainingDecision {
+  id                     String                    @id @default(uuid())
+  scenarioId             String
+  userId                 String
+  selectedAction         Json
+  evaluationStatus       TrainingEvaluationStatus
+  category               TrainingEvaluationCategory?
+  recommendationSnapshot Json?
+  explanationSnapshot    Json
+  strategyVersion        String?
+  completedAt            DateTime                  @default(now())
+  requestId              String
+
+  scenario TrainingScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([scenarioId, userId])
+  @@unique([scenarioId, userId, requestId])
+  @@index([userId, completedAt])
+  @@map("training_decisions")
 }
 
 model RoomInvitation {

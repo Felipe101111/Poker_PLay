@@ -57,7 +57,15 @@ curl.exe -s -b cookies.txt -X POST http://localhost:3000/api/local-games -H "Con
 
 ## Definition of Done for this quickstart
 
-- [ ] All 5 scenarios above produce the expected status codes and bodies.
-- [ ] Automated unit tests (`backend/tests/unit/poker-engine/`) cover deck/shuffle determinism, betting legality, pot/side-pot math, and hand evaluation independently of any HTTP server.
-- [ ] Automated contract/integration tests cover the same 5 scenarios through the HTTP layer.
-- [ ] No response ever includes another seat's hole cards before showdown, or the remaining deck, at any point.
+- [x] All 5 scenarios above produce the expected status codes and bodies.
+- [x] Automated unit tests (`backend/tests/unit/poker-engine/`) cover deck/shuffle determinism, betting legality, pot/side-pot math, and hand evaluation independently of any HTTP server.
+- [x] Automated contract/integration tests cover the same 5 scenarios through the HTTP layer.
+- [x] No response ever includes another seat's hole cards before showdown, or the remaining deck, at any point.
+
+## Validation Record (2026-09-26)
+
+- `backend` build passed with `npm run build`.
+- Poker Engine unit, contract, and integration coverage passed: 38 tests across the feature-003 focused run.
+- The five scenarios are covered by `local-games.start`, `local-games.state`, `local-games.actions`, `local-games.betting-flow`, `local-games.showdown`, `local-games.all-in`, and `local-games.abandon` tests.
+- Frontend build passed with `npm run build`; the existing frontend test suite passed with 1 test.
+- The redaction contract is verified by `local-games.state.test.ts`; the pure engine import boundary was checked during review and contains no Express, Prisma, or Zod imports.

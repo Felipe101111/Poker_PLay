@@ -29,6 +29,27 @@ function getUserId(socket: Socket): string | undefined {
 }
 
 export function registerMultiplayerSocket(io: Server) {
+  const activeConnections = new Map<string, Set<string>>();
+  const connectionKey = (roomId: string, userId: string) => `${roomId}:${userId}`;
+  const addConnection = (roomId: string, userId: string, socketId: string) => {
+    const key = connectionKey(roomId, userId);
+    const sockets = activeConnections.get(key) ?? new Set<string>();
+    sockets.add(socketId);
+    activeConnections.set(key, sockets);
+  };
+  const removeConnection = (roomId: string, userId: string, socketId: string) => {
+    const key = connectionKey(roomId, userId);
+    const sockets = activeConnections.get(key);
+    if (!sockets) return true;
+    sockets.delete(socketId);
+    if (sockets.size > 0) return false;
+    activeConnections.delete(key);
+    return true;
+  };
+  const broadcastPresence = (roomId: string, userId: string, status: 'ONLINE' | 'DISCONNECTED') => {
+    io.in(tableRoom(roomId)).emit('table:presence-changed', { roomId, userId, connectionStatus: status });
+  };
+
   io.use((socket, next) => {
     const request = socket.request as typeof socket.request & { session?: { userId?: string } };
     if (!request.session?.userId) {
@@ -49,6 +70,8 @@ export function registerMultiplayerSocket(io: Server) {
         const snapshot = await multiplayerService.reconnect(roomId, getUserId(socket)!, reconnectSchema.parse({ lastSeenVersion: payload?.lastSeenVersion ?? 0 }));
         await socket.join(tableRoom(roomId));
         sessionSocket.data.tableRooms.add(tableRoom(roomId));
+        addConnection(roomId, getUserId(socket)!, socket.id);
+        broadcastPresence(roomId, getUserId(socket)!, 'ONLINE');
         socket.emit('table:snapshot', { roomId, stateVersion: snapshot.table.stateVersion, table: snapshot.table });
         acknowledge?.({ ok: true });
       } catch (error) {
@@ -58,6 +81,10 @@ export function registerMultiplayerSocket(io: Server) {
 
     socket.on('table:leave', async (payload: SocketPayload) => {
       if (typeof payload?.roomId !== 'string') return;
+      if (removeConnection(payload.roomId, getUserId(socket)!, socket.id)) {
+        await multiplayerService.disconnect(payload.roomId, getUserId(socket)!);
+        broadcastPresence(payload.roomId, getUserId(socket)!, 'DISCONNECTED');
+      }
       await socket.leave(tableRoom(payload.roomId));
       sessionSocket.data.tableRooms.delete(tableRoom(payload.roomId));
     });
@@ -65,7 +92,7 @@ export function registerMultiplayerSocket(io: Server) {
     socket.on('table:heartbeat', async (payload: SocketPayload) => {
       if (typeof payload?.roomId !== 'string') return;
       try {
-        await multiplayerService.reconnect(payload.roomId, getUserId(socket)!, { lastSeenVersion: 0 });
+        await multiplayerService.heartbeat(payload.roomId, getUserId(socket)!);
       } catch {
         // Heartbeats are best-effort; the next snapshot or reconnect reports authorization errors.
       }
@@ -88,5 +115,22 @@ export function registerMultiplayerSocket(io: Server) {
         socket.emit('table:error', { code: apiError.code, message: apiError.message });
       }
     });
+
+    socket.on('disconnect', async () => {
+      const userId = getUserId(socket)!;
+      const rooms = [...sessionSocket.data.tableRooms].map((room) => room.replace('multiplayer-table:', ''));
+      for (const roomId of rooms) {
+        if (removeConnection(roomId, userId, socket.id)) {
+          await multiplayerService.disconnect(roomId, userId);
+          broadcastPresence(roomId, userId, 'DISCONNECTED');
+        }
+      }
+    });
   });
+
+  const reaper = setInterval(async () => {
+    const foldedRooms = await multiplayerService.reapExpiredParticipants();
+    await Promise.all(foldedRooms.map((roomId) => broadcastSnapshot(io, roomId)));
+  }, 5_000);
+  reaper.unref();
 }

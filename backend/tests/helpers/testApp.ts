@@ -6,6 +6,9 @@ export function buildTestApp() {
 }
 
 export async function resetDatabase() {
+  await prisma.trainingDecision.deleteMany();
+  await prisma.trainingScenario.deleteMany();
+  await prisma.trainingSession.deleteMany();
   await prisma.tableAction.deleteMany();
   await prisma.multiplayerHand.deleteMany();
   await prisma.tableParticipant.deleteMany();

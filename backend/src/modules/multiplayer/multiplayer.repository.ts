@@ -1,7 +1,8 @@
-import { Prisma, RoomStatus } from '@prisma/client';
+import { MultiplayerActionType, Prisma, RoomStatus } from '@prisma/client';
 import { prisma } from '../../db/prisma/client.js';
 import { startHand } from '../../poker-engine/engine.js';
 import type { HandState } from '../../poker-engine/types.js';
+import { DISCONNECT_GRACE_MS } from './multiplayer.presence.js';
 
 export type DbClient = typeof prisma | Prisma.TransactionClient;
 
@@ -64,4 +65,59 @@ export async function createTableFromStartedRoom(roomId: string, db: DbClient = 
 
 export function readHandState(snapshot: Prisma.JsonValue): HandState {
   return snapshot as unknown as HandState;
+}
+
+export async function markParticipantConnected(tableId: string, userId: string, now = new Date(), db: DbClient = prisma) {
+  return db.tableParticipant.updateMany({
+    where: { tableId, userId, eligibleForNextHand: true },
+    data: { connectionStatus: 'ONLINE', lastSeenAt: now, disconnectedAt: null }
+  });
+}
+
+export async function markParticipantDisconnected(tableId: string, userId: string, now = new Date(), db: DbClient = prisma) {
+  return db.tableParticipant.updateMany({
+    where: { tableId, userId, eligibleForNextHand: true },
+    data: { connectionStatus: 'DISCONNECTED', lastSeenAt: now, disconnectedAt: now }
+  });
+}
+
+export async function touchParticipant(tableId: string, userId: string, now = new Date(), db: DbClient = prisma) {
+  return db.tableParticipant.updateMany({
+    where: { tableId, userId, eligibleForNextHand: true },
+    data: { connectionStatus: 'ONLINE', lastSeenAt: now, disconnectedAt: null }
+  });
+}
+
+export async function findExpiredDisconnectedParticipants(now = new Date(), db: DbClient = prisma) {
+  const cutoff = new Date(now.getTime() - DISCONNECT_GRACE_MS);
+  return db.tableParticipant.findMany({
+    where: { connectionStatus: 'DISCONNECTED', disconnectedAt: { lte: cutoff }, eligibleForNextHand: true },
+    include: { table: { include: tableInclude } }
+  });
+}
+
+export async function recordRejectedAction(input: {
+  handId: string;
+  requestId: string;
+  userId: string;
+  seatNumber: number;
+  actionType: MultiplayerActionType;
+  amount?: number | null;
+  rejectionCode: string;
+}, db: DbClient = prisma) {
+  const rejectedCount = await db.tableAction.count({ where: { handId: input.handId, accepted: false } });
+  return db.tableAction.create({
+    data: {
+      handId: input.handId,
+      requestId: input.requestId,
+      sequence: -1 - rejectedCount,
+      userId: input.userId,
+      seatNumber: input.seatNumber,
+      actionType: input.actionType,
+      amount: input.amount ?? null,
+      accepted: false,
+      rejectionCode: input.rejectionCode,
+      resultingVersion: null
+    }
+  });
 }

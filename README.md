@@ -1,5 +1,5 @@
 # Poker Platform
 
-The repository contains the Poker Platform backend and browser client. Feature 004 adds authenticated PostgreSQL-backed poker rooms: public discovery, private invitations for accepted friends, seat-safe membership, readiness, host transfer, and waiting-room lifecycle controls.
+The repository contains the Poker Platform backend and browser client. The current product includes authenticated accounts, friends, local Poker Engine hands, PostgreSQL-backed poker rooms, and real-time multiplayer tables.
 
-Room management intentionally stops before real-time multiplayer gameplay. See [backend/README.md](backend/README.md) and [specs/004-poker-rooms/quickstart.md](specs/004-poker-rooms/quickstart.md) for setup and validation.
+See [backend/README.md](backend/README.md) for setup and API details, [specs/003-poker-engine/quickstart.md](specs/003-poker-engine/quickstart.md) for local-hand validation, and [specs/005-multiplayer-poker/quickstart.md](specs/005-multiplayer-poker/quickstart.md) for multiplayer validation.

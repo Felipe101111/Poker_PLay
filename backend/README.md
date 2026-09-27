@@ -1,6 +1,6 @@
 # Backend — Poker Platform
 
-Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing authentication, friends, local poker hands, and feature `004-poker-rooms`.
+Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing authentication, friends, local poker hands, poker rooms, and multiplayer tables.
 
 ## Prerequisites
 
@@ -37,6 +37,21 @@ npm.cmd test
 ```
 
 Contract tests (`tests/contract/`) and integration tests (`tests/integration/`) require a reachable `DATABASE_URL` — they exercise the real Express app + Postgres via Supertest and Prisma. Unit tests (`tests/unit/`) have no such dependency.
+
+## Local Poker Engine API (feature 003)
+
+The pure Poker Engine lives in `src/poker-engine/` and has no Express, Prisma, Zod, or frontend dependencies. It owns card dealing, blind posting, legal actions, betting-round transitions, pot calculation, hand evaluation, showdown, and server-side result awarding. The local-games module is only the authenticated HTTP/in-memory wrapper around that engine.
+
+All endpoints require the feature 001 session cookie:
+
+| Method & Path | Purpose |
+|---|---|
+| `POST /api/local-games` | Start one local 2-9 seat hand |
+| `GET /api/local-games/current?asSeat={seatNumber}` | Read the redacted state from one seat's perspective |
+| `POST /api/local-games/current/actions` | Submit a server-validated fold/check/call/bet/raise/all-in action |
+| `DELETE /api/local-games/current` | Abandon the active hand idempotently |
+
+The wrapper keeps one active hand per authenticated user in memory. The complete response never exposes the remaining deck or another seat's hole cards before showdown. Hand history is intentionally not persisted in feature 003; use the feature quickstart for end-to-end validation.
 
 ## Project layout
 

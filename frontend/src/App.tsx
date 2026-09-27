@@ -6,6 +6,8 @@ import { FriendsPage } from './pages/FriendsPage';
 import { LocalGamePage } from './pages/LocalGamePage';
 import { RoomsPage } from './pages/RoomsPage';
 import { MultiplayerTablePage } from './pages/MultiplayerTablePage';
+import { TrainerPage } from './pages/TrainerPage';
+import { TrainerProgressPage } from './pages/TrainerProgressPage';
 
 export default function App() {
   return (
@@ -18,6 +20,8 @@ export default function App() {
         <Route path="/local-game" element={<LocalGamePage />} />
         <Route path="/rooms" element={<RoomsPage />} />
         <Route path="/rooms/:roomId/table" element={<MultiplayerTablePage />} />
+        <Route path="/trainer" element={<TrainerPage />} />
+        <Route path="/trainer/progress" element={<TrainerProgressPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
