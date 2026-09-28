@@ -1,0 +1,15 @@
+{
+  "id": "postflop-v1",
+  "version": "postflop-v1",
+  "schemaVersion": "1",
+  "gameFormat": "SIX_MAX_100BB_POSTFLOP",
+  "street": "flop",
+  "tableSize": 6,
+  "stackAssumptions": ["100bb effective"],
+  "blindAssumptions": ["standard blinds", "no ante"],
+  "source": "bounded postflop fixture dataset",
+  "assumptions": ["frequencies are explicit mixed strategies", "missing contexts are unavailable"],
+  "precision": 0.01,
+  "status": "PUBLISHED",
+  "publishedAt": "2026-09-28T00:00:00.000Z"
+}

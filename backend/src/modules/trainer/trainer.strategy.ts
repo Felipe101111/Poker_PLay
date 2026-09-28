@@ -1,4 +1,5 @@
 import dataset from './data/preflop-strategy.v1.json' with { type: 'json' };
+import postflopRows from '../strategy/data/postflop-v1.rows.json' with { type: 'json' };
 import type { TrainerActionInput, TrainerEvaluationCategory } from './trainer.types.js';
 
 export interface StrategyRecommendation {
@@ -21,10 +22,16 @@ export function lookupStrategy(key: string): StrategyRecommendation | null {
   return recommendation ? { ...recommendation, version: strategyDataset.version, key } : null;
 }
 
+export function lookupPostflopStrategy(key: string): StrategyRecommendation | null {
+  const row = (postflopRows as Array<{ contextKey: string; actions: Array<{ action: TrainerActionInput; frequency: number }>; assumptions: string[]; factors: string[] }>).find((candidate) => candidate.contextKey === key);
+  return row ? { version: 'postflop-v1', key, actions: row.actions, assumptions: row.assumptions, factors: row.factors } : null;
+}
+
 export function classifyAction(strategy: StrategyRecommendation, selected: TrainerActionInput): TrainerEvaluationCategory {
   const match = strategy.actions.find((candidate) => candidate.action.type === selected.type && candidate.action.amountBB === selected.amountBB);
   if (!match) return 'SIGNIFICANT_DEVIATION';
   if (match.frequency >= 0.5) return 'PREFERRED';
+  if (match.frequency < 0.1) return 'MARGINAL';
   if (match.frequency > 0) return 'ACCEPTABLE_MIXED';
   return 'MARGINAL';
 }

@@ -12,8 +12,8 @@ datasource db {
 // Session entity from data-model.md (id, userId, createdAt, expiresAt) maps to
 // that table's sid/sess(JSON: userId, createdAt)/expire columns respectively.
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
+  id                 String   @id @default(uuid())
+  email              String   @unique
   // Original casing preserved for display; uniqueness is enforced case/whitespace
   // -insensitively via the shadow `usernameNormalized` column (data-model.md FR-003/FR-011).
   username           String
@@ -21,18 +21,19 @@ model User {
   passwordHash       String
   createdAt          DateTime @default(now())
 
-  sentFriendRequests     FriendRequest[] @relation("Sender")
-  receivedFriendRequests FriendRequest[] @relation("Receiver")
-  friendRequestsAsLow    FriendRequest[] @relation("UserLow")
-  friendRequestsAsHigh   FriendRequest[] @relation("UserHigh")
-  hostedRooms             PokerRoom[]    @relation("RoomHost")
+  sentFriendRequests      FriendRequest[]      @relation("Sender")
+  receivedFriendRequests  FriendRequest[]      @relation("Receiver")
+  friendRequestsAsLow     FriendRequest[]      @relation("UserLow")
+  friendRequestsAsHigh    FriendRequest[]      @relation("UserHigh")
+  hostedRooms             PokerRoom[]          @relation("RoomHost")
   roomMemberships         RoomMember[]
-  sentRoomInvitations     RoomInvitation[] @relation("InvitationSender")
-  receivedRoomInvitations RoomInvitation[] @relation("InvitationRecipient")
+  sentRoomInvitations     RoomInvitation[]     @relation("InvitationSender")
+  receivedRoomInvitations RoomInvitation[]     @relation("InvitationRecipient")
   tableParticipants       TableParticipant[]
   tableActions            TableAction[]
   trainingSessions        TrainingSession[]
   trainingDecisions       TrainingDecision[]
+  equityStrategySnapshots EvaluationSnapshot[]
 
   @@map("users")
 }
@@ -83,24 +84,24 @@ enum RoomInvitationStatus {
 }
 
 model PokerRoom {
-  id              String        @id @default(uuid())
+  id              String         @id @default(uuid())
   hostId          String
   name            String
   visibility      RoomVisibility
-  status          RoomStatus    @default(WAITING)
+  status          RoomStatus     @default(WAITING)
   seatLimit       Int
   minPlayers      Int
   startingStackBB Int
   smallBlind      Int
   bigBlind        Int
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
   startedAt       DateTime?
   closedAt        DateTime?
 
-  host        User             @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
-  members     RoomMember[]
-  invitations RoomInvitation[]
+  host             User              @relation("RoomHost", fields: [hostId], references: [id], onDelete: Cascade)
+  members          RoomMember[]
+  invitations      RoomInvitation[]
   multiplayerTable MultiplayerTable?
 
   @@index([status, visibility, createdAt])
@@ -116,8 +117,8 @@ model RoomMember {
   joinedAt   DateTime @default(now())
   lastSeenAt DateTime @default(now())
 
-  room PokerRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room             PokerRoom         @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   tableParticipant TableParticipant?
 
   @@unique([roomId, userId])
@@ -153,20 +154,20 @@ enum MultiplayerActionType {
 }
 
 model MultiplayerTable {
-  id             String                 @id @default(uuid())
-  roomId         String                 @unique
-  status         MultiplayerTableStatus @default(ACTIVE)
-  handNumber     Int                    @default(1)
-  currentHandId  String?                @unique
-  dealerSeat     Int
-  stateVersion   Int                    @default(1)
-  createdAt      DateTime               @default(now())
-  updatedAt      DateTime               @updatedAt
-  closedAt       DateTime?
+  id            String                 @id @default(uuid())
+  roomId        String                 @unique
+  status        MultiplayerTableStatus @default(ACTIVE)
+  handNumber    Int                    @default(1)
+  currentHandId String?                @unique
+  dealerSeat    Int
+  stateVersion  Int                    @default(1)
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+  closedAt      DateTime?
 
-  room        PokerRoom        @relation(fields: [roomId], references: [id], onDelete: Cascade)
-  currentHand MultiplayerHand? @relation("CurrentTableHand", fields: [currentHandId], references: [id])
-  hands       MultiplayerHand[] @relation("TableHands")
+  room         PokerRoom          @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  currentHand  MultiplayerHand?   @relation("CurrentTableHand", fields: [currentHandId], references: [id])
+  hands        MultiplayerHand[]  @relation("TableHands")
   participants TableParticipant[]
 
   @@index([status, updatedAt])
@@ -174,21 +175,21 @@ model MultiplayerTable {
 }
 
 model TableParticipant {
-  id                  String                     @id @default(uuid())
+  id                  String                      @id @default(uuid())
   tableId             String
   userId              String
-  roomMemberId        String                     @unique
+  roomMemberId        String                      @unique
   seatNumber          Int
   stack               Int
-  eligibleForNextHand Boolean                    @default(true)
+  eligibleForNextHand Boolean                     @default(true)
   connectionStatus    ParticipantConnectionStatus @default(DISCONNECTED)
-  lastSeenAt          DateTime                   @default(now())
+  lastSeenAt          DateTime                    @default(now())
   disconnectedAt      DateTime?
   eliminatedAt        DateTime?
 
-  table     MultiplayerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roomMember RoomMember      @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  table      MultiplayerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roomMember RoomMember       @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
 
   @@unique([tableId, userId])
   @@unique([tableId, seatNumber])
@@ -209,9 +210,9 @@ model MultiplayerHand {
   completedAt    DateTime?
   resultSnapshot Json?
 
-  table       MultiplayerTable @relation("TableHands", fields: [tableId], references: [id], onDelete: Cascade)
-  currentFor  MultiplayerTable? @relation("CurrentTableHand")
-  actions     TableAction[]
+  table      MultiplayerTable  @relation("TableHands", fields: [tableId], references: [id], onDelete: Cascade)
+  currentFor MultiplayerTable? @relation("CurrentTableHand")
+  actions    TableAction[]
 
   @@unique([tableId, handNumber])
   @@index([tableId, status])
@@ -219,18 +220,18 @@ model MultiplayerHand {
 }
 
 model TableAction {
-  id              String                @id @default(uuid())
-  handId          String
-  requestId       String
-  sequence        Int
-  userId          String
-  seatNumber      Int
-  actionType      MultiplayerActionType
-  amount          Int?
-  accepted        Boolean
-  rejectionCode   String?
+  id               String                @id @default(uuid())
+  handId           String
+  requestId        String
+  sequence         Int
+  userId           String
+  seatNumber       Int
+  actionType       MultiplayerActionType
+  amount           Int?
+  accepted         Boolean
+  rejectionCode    String?
   resultingVersion Int?
-  createdAt       DateTime              @default(now())
+  createdAt        DateTime              @default(now())
 
   hand MultiplayerHand @relation(fields: [handId], references: [id], onDelete: Cascade)
   user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -243,6 +244,20 @@ model TableAction {
 
 enum TrainingSessionFormat {
   SIX_MAX_100BB_PREFLOP
+  SIX_MAX_100BB_POSTFLOP
+}
+
+enum TrainingStreet {
+  FLOP
+  TURN
+  RIVER
+}
+
+enum TrainingTerminalReason {
+  FOLD
+  ALL_IN
+  SHOWDOWN
+  COMPLETE
 }
 
 enum TrainingSessionStatus {
@@ -272,9 +287,9 @@ model TrainingSession {
   updatedAt         DateTime              @updatedAt
   completedAt       DateTime?
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
-  currentScenario TrainingScenario? @relation("CurrentTrainingScenario", fields: [currentScenarioId], references: [id])
-  scenarios        TrainingScenario[] @relation("SessionScenarios")
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentScenario TrainingScenario?  @relation("CurrentTrainingScenario", fields: [currentScenarioId], references: [id])
+  scenarios       TrainingScenario[] @relation("SessionScenarios")
 
   @@index([userId, status])
   @@map("training_sessions")
@@ -295,11 +310,15 @@ model TrainingScenario {
   legalActions     Json
   strategyKey      String
   strategyVersion  String?
+  street           TrainingStreet?
+  board            Json?
+  potBB            Float?
+  terminalReason   TrainingTerminalReason?
   createdAt        DateTime @default(now())
 
-  session  TrainingSession  @relation("SessionScenarios", fields: [sessionId], references: [id], onDelete: Cascade)
-  currentFor TrainingSession? @relation("CurrentTrainingScenario")
-  decisions TrainingDecision[]
+  session    TrainingSession    @relation("SessionScenarios", fields: [sessionId], references: [id], onDelete: Cascade)
+  currentFor TrainingSession?   @relation("CurrentTrainingScenario")
+  decisions  TrainingDecision[]
 
   @@unique([sessionId, sequence])
   @@index([sessionId, createdAt])
@@ -307,7 +326,7 @@ model TrainingScenario {
 }
 
 model TrainingDecision {
-  id                     String                    @id @default(uuid())
+  id                     String                      @id @default(uuid())
   scenarioId             String
   userId                 String
   selectedAction         Json
@@ -316,7 +335,7 @@ model TrainingDecision {
   recommendationSnapshot Json?
   explanationSnapshot    Json
   strategyVersion        String?
-  completedAt            DateTime                  @default(now())
+  completedAt            DateTime                    @default(now())
   requestId              String
 
   scenario TrainingScenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
@@ -344,4 +363,71 @@ model RoomInvitation {
   @@unique([roomId, toUserId])
   @@index([toUserId, status, createdAt])
   @@map("room_invitations")
+}
+
+enum StrategyDatasetStatus {
+  PUBLISHED
+  RETIRED
+}
+
+model StrategyDatasetVersion {
+  id               String                @id @default(uuid())
+  version          String                @unique
+  schemaVersion    String
+  gameFormat       String
+  street           String
+  tableSize        Int
+  stackAssumptions Json
+  blindAssumptions Json
+  source           String
+  contentHash      String?
+  assumptions      Json
+  precision        Decimal               @db.Decimal(12, 10)
+  status           StrategyDatasetStatus @default(PUBLISHED)
+  publishedAt      DateTime              @default(now())
+  retiredAt        DateTime?
+
+  rows      StrategyRow[]
+  snapshots EvaluationSnapshot[]
+
+  @@index([gameFormat, street, status])
+  @@map("strategy_dataset_versions")
+}
+
+model StrategyRow {
+  id               String @id @default(uuid())
+  datasetVersionId String
+  contextKey       String
+  rangeSnapshot    Json?
+  actions          Json
+  factors          Json
+  assumptions      Json
+  conditions       Json
+
+  datasetVersion StrategyDatasetVersion @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([datasetVersionId, contextKey])
+  @@map("strategy_rows")
+}
+
+model EvaluationSnapshot {
+  id                      String   @id @default(uuid())
+  userId                  String
+  scenarioId              String?
+  datasetVersionId        String?
+  contextSnapshot         Json
+  equitySnapshot          Json
+  strategyVersionSnapshot Json?
+  strategyRowSnapshot     Json?
+  classification          String?
+  availability            String
+  calculationFingerprint  String?
+  createdAt               DateTime @default(now())
+
+  user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  datasetVersion StrategyDatasetVersion? @relation(fields: [datasetVersionId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([scenarioId, createdAt])
+  @@map("evaluation_snapshots")
 }

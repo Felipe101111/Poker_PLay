@@ -1,0 +1,41 @@
+[
+  {
+    "id": "postflop-v1-flop-btn",
+    "datasetVersionId": "postflop-v1",
+    "contextKey": "flop:SIX_MAX_100BB_POSTFLOP:SB:100bb:checked-to-hero",
+    "range": null,
+    "actions": [
+      { "action": { "type": "check" }, "frequency": 0.35 },
+      { "action": { "type": "bet", "amountBB": 3 }, "frequency": 0.65 }
+    ],
+    "factors": ["position", "effective stack", "prior action"],
+    "assumptions": ["single-raised-pot fixture"],
+    "conditions": ["no terminal state"]
+  },
+  {
+    "id": "postflop-v1-turn-btn",
+    "datasetVersionId": "postflop-v1",
+    "contextKey": "turn:SIX_MAX_100BB_POSTFLOP:SB:100bb:checked-to-hero",
+    "range": null,
+    "actions": [
+      { "action": { "type": "check" }, "frequency": 0.5 },
+      { "action": { "type": "bet", "amountBB": 5 }, "frequency": 0.5 }
+    ],
+    "factors": ["position", "turn texture", "effective stack"],
+    "assumptions": ["single-raised-pot fixture"],
+    "conditions": ["no terminal state"]
+  },
+  {
+    "id": "postflop-v1-river-btn",
+    "datasetVersionId": "postflop-v1",
+    "contextKey": "river:SIX_MAX_100BB_POSTFLOP:SB:100bb:checked-to-hero",
+    "range": null,
+    "actions": [
+      { "action": { "type": "check" }, "frequency": 0.7 },
+      { "action": { "type": "bet", "amountBB": 8 }, "frequency": 0.3 }
+    ],
+    "factors": ["position", "river texture", "pot geometry"],
+    "assumptions": ["single-raised-pot fixture"],
+    "conditions": ["no terminal state"]
+  }
+]

@@ -1,4 +1,5 @@
-import type { TrainerDecisionView, TrainerScenarioView } from './trainer.types.js';
+import type { Card } from '../../poker-engine/types.js';
+import type { TrainerDecisionView, TrainerScenarioView, TrainerStreet, TrainerTerminalReason } from './trainer.types.js';
 
 export function projectScenario(input: {
   id: string;
@@ -10,6 +11,10 @@ export function projectScenario(input: {
   priorActions: unknown;
   legalActions: unknown;
   strategyVersion: string | null;
+  street?: TrainerStreet | null;
+  board?: unknown;
+  potBB?: number | null;
+  terminalReason?: TrainerTerminalReason | null;
 }): TrainerScenarioView {
   const legal = input.legalActions as {
     actions: TrainerScenarioView['legalActions']['actions'];
@@ -37,12 +42,16 @@ export function projectScenario(input: {
       maxBetOrRaiseBB: toBB(legal.maxBetOrRaiseBB ?? legal.maxBetOrRaise, legal.maxBetOrRaiseBB !== undefined)
     },
     strategyAvailable: input.strategyVersion !== null,
-    strategyVersion: input.strategyVersion
+    strategyVersion: input.strategyVersion,
+    street: input.street ? input.street.toLowerCase() as TrainerStreet : undefined,
+    board: input.board as Card[] | undefined,
+    potBB: input.potBB ?? undefined,
+    terminalReason: input.terminalReason ?? null
   };
 }
 
 export function projectDecision(input: any): TrainerDecisionView {
-  const explanation = input.explanationSnapshot as { factors?: string[]; assumptions?: string[] };
+  const explanation = input.explanationSnapshot as { factors?: string[]; assumptions?: string[]; equity?: TrainerDecisionView['equity']; limitations?: string[]; street?: TrainerDecisionView['street'] };
   return {
     id: input.id,
     scenarioId: input.scenarioId,
@@ -50,6 +59,9 @@ export function projectDecision(input: any): TrainerDecisionView {
     evaluationStatus: input.evaluationStatus,
     category: input.category,
     recommendations: input.recommendationSnapshot,
-    explanation: { factors: explanation.factors ?? [], assumptions: explanation.assumptions ?? [] }
+    explanation: { factors: explanation.factors ?? [], assumptions: explanation.assumptions ?? [] },
+    equity: explanation.equity ?? null,
+    street: explanation.street,
+    limitations: explanation.limitations ?? []
   };
 }

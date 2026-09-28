@@ -1,6 +1,9 @@
+## Equity and strategy boundary
+
+`src/modules/equity` is a pure exact calculator built on the Poker Engine evaluator. `src/modules/strategy` owns versioned manifests, immutable rows, and explicit `UNAVAILABLE` results. Trainer remains the authenticated boundary; clients cannot submit authoritative private cards, ranges, or dataset contents.
 # Backend — Poker Platform
 
-Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing authentication, friends, local poker hands, poker rooms, and multiplayer tables.
+Node.js 20 + TypeScript + Express + Prisma + PostgreSQL backend implementing authentication, friends, local poker hands, poker rooms, multiplayer tables, and the preflop/postflop Poker Trainer.
 
 ## Prerequisites
 
@@ -37,6 +40,20 @@ npm.cmd test
 ```
 
 Contract tests (`tests/contract/`) and integration tests (`tests/integration/`) require a reachable `DATABASE_URL` — they exercise the real Express app + Postgres via Supertest and Prisma. Unit tests (`tests/unit/`) have no such dependency.
+
+## Poker Trainer (feature 006)
+
+The trainer is a server-authoritative, preflop-only six-player experience using 100 BB virtual stacks. It reuses the Poker Engine for dealing and legal actions, stores a server-generated seed and immutable snapshots in PostgreSQL, and evaluates decisions against the bounded `preflop-v1` dataset at `src/modules/trainer/data/preflop-strategy.v1.json`.
+
+Authenticated endpoints are grouped under `/api/trainer`: start/resume and current session, decision submission, continuation, and personal progress. The server derives identity from the session cookie. Responses expose only the authenticated player's hole cards and projected scenario data; engine snapshots, raw decks, future boards, and opponent cards remain server-side.
+
+Missing strategy rows are recorded as `UNAVAILABLE` without fabricated advice. Repeating a decision request with the same retry key returns the original immutable result. See [../specs/006-poker-trainer/quickstart.md](../specs/006-poker-trainer/quickstart.md) for migration, tests, recovery, security, and performance validation.
+
+## Poker Trainer postflop (feature 008)
+
+Postflop sessions use the dedicated `/api/trainer/postflop/session/*` endpoints. A session starts on a deterministic three-card flop, then advances to four cards on turn and five on river only after the current decision is persisted. Fold, all-in, showdown, and complete hands stop the sequence without fabricating a later street.
+
+The response exposes only the player's cards, visible board, pot, position, legal actions, and ordered decision review. Raw decks, future cards, opponent hole cards, internal engine bookkeeping, client ranges, and client strategy versions are never accepted or projected. Strategy availability and exact-equity limitations are retained in immutable evaluation snapshots. Apply `20260928000500_add_postflop_trainer` with `npm.cmd run prisma:migrate:deploy` before running the postflop contract suite. See [../specs/008-poker-trainer-postflop/quickstart.md](../specs/008-poker-trainer-postflop/quickstart.md) and [../specs/008-poker-trainer-postflop/contracts/trainer-postflop-http.md](../specs/008-poker-trainer-postflop/contracts/trainer-postflop-http.md).
 
 ## Local Poker Engine API (feature 003)
 

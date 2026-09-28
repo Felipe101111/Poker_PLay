@@ -1,7 +1,11 @@
 import type { ActionType, Card, HandState, LegalActions } from '../../poker-engine/types.js';
+import type { EquityAnalysisResult } from '../equity/equity.types.js';
 
 export const TRAINER_FORMAT = 'SIX_MAX_100BB_PREFLOP' as const;
-export type TrainerFormat = typeof TRAINER_FORMAT;
+export const POSTFLOP_TRAINER_FORMAT = 'SIX_MAX_100BB_POSTFLOP' as const;
+export type TrainerFormat = typeof TRAINER_FORMAT | typeof POSTFLOP_TRAINER_FORMAT;
+export type TrainerStreet = 'flop' | 'turn' | 'river';
+export type TrainerTerminalReason = 'FOLD' | 'ALL_IN' | 'SHOWDOWN' | 'COMPLETE';
 export type TrainerActionType = ActionType;
 export type TrainerEvaluationCategory = 'PREFERRED' | 'ACCEPTABLE_MIXED' | 'MARGINAL' | 'SIGNIFICANT_DEVIATION';
 export type TrainerEvaluationStatus = 'EVALUATED' | 'UNAVAILABLE';
@@ -23,6 +27,10 @@ export interface TrainerScenarioView {
   legalActions: LegalActionsView;
   strategyAvailable: boolean;
   strategyVersion: string | null;
+  street?: TrainerStreet;
+  board?: Card[];
+  potBB?: number;
+  terminalReason?: TrainerTerminalReason | null;
 }
 
 export interface LegalActionsView {
@@ -40,6 +48,9 @@ export interface TrainerDecisionView {
   category: TrainerEvaluationCategory | null;
   recommendations: Array<{ action: TrainerActionInput; frequency: number }> | null;
   explanation: { factors: string[]; assumptions: string[] };
+  equity: EquityAnalysisResult | null;
+  street?: TrainerStreet;
+  limitations?: string[];
 }
 
 export interface TrainerSessionView {
@@ -52,6 +63,7 @@ export interface TrainerSessionResponse {
   session: TrainerSessionView;
   scenario: TrainerScenarioView | null;
   latestDecision: TrainerDecisionView | null;
+  history?: TrainerDecisionView[];
 }
 
 export interface TrainerProgressView {
