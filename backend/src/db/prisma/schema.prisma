@@ -190,7 +190,7 @@ model TableParticipant {
   id                  String                      @id @default(uuid())
   tableId             String
   userId              String
-  roomMemberId        String                      @unique
+  roomMemberId        String?                     @unique
   seatNumber          Int
   stack               Int
   eligibleForNextHand Boolean                     @default(true)
@@ -201,7 +201,7 @@ model TableParticipant {
 
   table      MultiplayerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  roomMember RoomMember       @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  roomMember RoomMember?      @relation(fields: [roomMemberId], references: [id], onDelete: SetNull)
   trainingParticipant MultiplayerTrainingParticipant?
 
   @@unique([tableId, userId])

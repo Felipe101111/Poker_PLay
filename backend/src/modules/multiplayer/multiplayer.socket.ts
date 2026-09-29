@@ -136,6 +136,25 @@ export function registerMultiplayerSocket(io: Server) {
       }
     });
 
+    socket.on('table:abandon', async (payload: SocketPayload, acknowledge?: (response: unknown) => void) => {
+      const roomId = typeof payload?.roomId === 'string' ? payload.roomId : '';
+      if (!roomId) {
+        acknowledge?.({ ok: false, code: 'VALIDATION_ERROR', message: 'Invalid room id' });
+        return;
+      }
+      try {
+        const result = await multiplayerService.abandon(roomId, getUserId(socket)!);
+        await socket.leave(tableRoom(roomId));
+        sessionSocket.data.tableRooms.delete(tableRoom(roomId));
+        removeConnection(roomId, getUserId(socket)!, socket.id);
+        acknowledge?.({ ok: true });
+        await broadcastSnapshot(io, roomId, result.cause);
+      } catch (error) {
+        const apiError = error instanceof ApiError ? error : new ApiError(500, 'INTERNAL_ERROR', 'Unexpected server error');
+        acknowledge?.({ ok: false, code: apiError.code, message: apiError.message });
+      }
+    });
+
     socket.on('disconnect', async () => {
       const userId = getUserId(socket)!;
       recordMultiplayerMetric('socket.disconnected', { userId });

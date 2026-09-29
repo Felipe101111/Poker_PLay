@@ -19,17 +19,18 @@ export async function registerAndLoginMultiplayerUser(app: Express, prefix: stri
   return { agent, id: registered.body.id as string, cookie: login.headers['set-cookie']?.[0] ?? '' };
 }
 
-export async function createStartedMultiplayerRoom(app: Express, prefix = 'multiplayer') {
+export async function createStartedMultiplayerRoom(app: Express, prefix = 'multiplayer', seatLimit = 2) {
   const host = await registerAndLoginMultiplayerUser(app, `${prefix}-host`);
-  const guest = await registerAndLoginMultiplayerUser(app, `${prefix}-guest`);
-  const created = await host.agent.post('/api/rooms').send(multiplayerRoomInput);
+  const guests = await Promise.all(Array.from({ length: seatLimit - 1 }, (_, index) =>
+    registerAndLoginMultiplayerUser(app, `${prefix}-guest-${index + 1}`)));
+  const created = await host.agent.post('/api/rooms').send({ ...multiplayerRoomInput, seatLimit });
   const roomId = created.body.id as string;
-  await guest.agent.post(`/api/rooms/${roomId}/join`).send({});
+  for (const guest of guests) await guest.agent.post(`/api/rooms/${roomId}/join`).send({});
   await host.agent.patch(`/api/rooms/${roomId}/readiness`).send({ ready: true });
-  await guest.agent.patch(`/api/rooms/${roomId}/readiness`).send({ ready: true });
+  for (const guest of guests) await guest.agent.patch(`/api/rooms/${roomId}/readiness`).send({ ready: true });
   const started = await host.agent.post(`/api/rooms/${roomId}/start`);
   if (started.status !== 200) throw new Error(`Unable to start multiplayer fixture: ${started.status}`);
-  return { host, guest, roomId };
+  return { host, guest: guests[0], guests, roomId };
 }
 
 export function connectMultiplayerSocket(baseUrl: string, cookie: string): Socket {

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { apiClient, ApiRequestError } from '../services/apiClient';
 import { roomsApi, type CreateRoomInput, type RoomInvitation, type RoomView } from '../services/roomsApi';
 import { friendsApi, type Friend } from '../services/friendsApi';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 const initialForm: CreateRoomInput = {
   name: '',
@@ -15,6 +15,7 @@ const initialForm: CreateRoomInput = {
 };
 
 export function RoomsPage() {
+  const navigate = useNavigate();
   const [rooms, setRooms] = useState<RoomView[]>([]);
   const [selected, setSelected] = useState<RoomView | null>(null);
   const [currentRoom, setCurrentRoom] = useState<RoomView | null>(null);
@@ -89,7 +90,7 @@ export function RoomsPage() {
   function returnToCurrentRoom() {
     if (!currentRoom) return;
     if (currentRoom.status === 'STARTED') {
-      window.location.assign(`/rooms/${currentRoom.id}/table`);
+      navigate(`/rooms/${currentRoom.id}/table`);
       return;
     }
     showRoom(currentRoom.id);

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { startHand, submitAction } from '../../../src/poker-engine/engine.js';
+import { abandonSeat, startHand, submitAction } from '../../../src/poker-engine/engine.js';
 
 describe('startHand', () => {
   it('assigns dealer/SB/BB and posts correct blind amounts for a ring game', () => {
@@ -62,6 +62,28 @@ describe('startHand', () => {
     expect(hand.seatToAct).toBeNull();
     expect(hand.result).not.toBeNull();
     expect(hand.result!.revealedSeats).toEqual([]);
+  });
+
+  it('folds an abandoning acting seat through normal hand progression', () => {
+    const hand = startHand('user-1', 3, 100, 1);
+    const leavingSeat = hand.seatToAct!;
+
+    abandonSeat(hand, leavingSeat);
+
+    expect(hand.seats.find((seat) => seat.seatNumber === leavingSeat)?.folded).toBe(true);
+    expect(hand.actionHistory.at(-1)).toMatchObject({ seatNumber: leavingSeat, type: 'fold' });
+    expect(hand.seatToAct).not.toBe(leavingSeat);
+  });
+
+  it('folds an abandoning non-acting seat without stealing the active turn', () => {
+    const hand = startHand('user-1', 3, 100, 1);
+    const activeSeat = hand.seatToAct!;
+    const leavingSeat = hand.seats.find((seat) => seat.seatNumber !== activeSeat)!.seatNumber;
+
+    abandonSeat(hand, leavingSeat);
+
+    expect(hand.seats.find((seat) => seat.seatNumber === leavingSeat)?.folded).toBe(true);
+    expect(hand.seatToAct).toBe(activeSeat);
   });
 
   it('auto-deals the remaining streets when every seat is all-in', () => {

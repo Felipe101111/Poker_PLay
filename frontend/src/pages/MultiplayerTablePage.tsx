@@ -1,14 +1,16 @@
 import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { ApiRequestError } from '../services/apiClient';
 import { multiplayerApi, type ActionType, type TableView } from '../services/multiplayerApi';
-import { createMultiplayerSocket, joinTable, leaveTable, sendTableAction, sendTableHeartbeat, type TableErrorEvent, type TablePresenceEvent, type TableSnapshotEvent, type TableStateChangedEvent } from '../services/multiplayerSocket';
+import { abandonTable, createMultiplayerSocket, joinTable, leaveTable, sendTableAction, sendTableHeartbeat, type TableErrorEvent, type TablePresenceEvent, type TableSnapshotEvent, type TableStateChangedEvent } from '../services/multiplayerSocket';
 
 export function MultiplayerTablePage() {
   const { roomId = '' } = useParams();
+  const navigate = useNavigate();
   const [table, setTable] = useState<TableView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [abandoning, setAbandoning] = useState(false);
   const [amount, setAmount] = useState('');
   const socketRef = useRef<ReturnType<typeof createMultiplayerSocket> | null>(null);
 
@@ -86,6 +88,18 @@ export function MultiplayerTablePage() {
     });
   }
 
+  function abandonGame() {
+    if (!roomId || !socketRef.current || !window.confirm('Abandon this game? Your hand will be folded and you will leave the table.')) return;
+    setAbandoning(true);
+    abandonTable(socketRef.current, roomId, (response) => {
+      if (response.ok) navigate('/rooms', { replace: true });
+      else {
+        setAbandoning(false);
+        setError(response.message ?? 'Could not abandon the game.');
+      }
+    });
+  }
+
   if (error) return <main><p role="alert">{error}</p></main>;
   if (!table) return <main><p>Loading table...</p></main>;
 
@@ -94,6 +108,12 @@ export function MultiplayerTablePage() {
   return (
     <main className="page-stack">
       <h1>Live table</h1>
+      <nav aria-label="Table navigation">
+        <button type="button" onClick={() => navigate('/rooms')}>Back to rooms</button>
+        <button type="button" onClick={abandonGame} disabled={!connected || abandoning}>
+          {abandoning ? 'Leaving game...' : 'Abandon game'}
+        </button>
+      </nav>
       <p>{connected ? 'Connected' : 'Connecting'} · Hand {table.handNumber} · Version {table.stateVersion}</p>
       {table.status === 'CLOSED' && <p role="status">This table is closed.</p>}
       {table.lastCompletedHand && <section aria-label="Last hand result">

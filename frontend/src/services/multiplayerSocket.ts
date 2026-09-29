@@ -65,6 +65,10 @@ export function sendTableAction(socket: Socket, roomId: string, input: TableActi
   socket.emit('table:action', { roomId, ...input }, acknowledge);
 }
 
+export function abandonTable(socket: Socket, roomId: string, acknowledge?: (response: { ok: boolean; code?: string; message?: string }) => void) {
+  socket.emit('table:abandon', { roomId }, acknowledge);
+}
+
 export function joinTraining(socket: Socket, roomId: string) {
   socket.emit('training:join', { roomId });
 }

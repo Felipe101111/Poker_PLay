@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MultiplayerTablePage } from '../src/pages/MultiplayerTablePage';
 
 const socketHandlers: Record<string, (payload?: unknown) => void> = {};
@@ -24,18 +24,25 @@ vi.mock('../src/services/multiplayerSocket', () => ({
   joinTable: vi.fn(),
   leaveTable: vi.fn(),
   sendTableAction: vi.fn(),
-  sendTableHeartbeat: vi.fn()
+  sendTableHeartbeat: vi.fn(),
+  abandonTable: vi.fn()
 }));
 
 const { multiplayerApi } = await import('../src/services/multiplayerApi');
+const { abandonTable } = await import('../src/services/multiplayerSocket');
 
 function renderPage() {
   return render(<MemoryRouter initialEntries={['/rooms/room-1/table']}>
-    <Routes><Route path="/rooms/:roomId/table" element={<MultiplayerTablePage />} /></Routes>
+    <Routes>
+      <Route path="/rooms/:roomId/table" element={<MultiplayerTablePage />} />
+      <Route path="/rooms" element={<p>Rooms destination</p>} />
+    </Routes>
   </MemoryRouter>);
 }
 
 describe('MultiplayerTablePage', () => {
+  afterEach(cleanup);
+
   beforeEach(() => {
     vi.clearAllMocks();
     for (const key of Object.keys(socketHandlers)) delete socketHandlers[key];
@@ -68,5 +75,27 @@ describe('MultiplayerTablePage', () => {
     socketHandlers['table:error']?.({ code: 'STALE_GAME_STATE', message: 'stale' });
 
     await waitFor(() => expect(multiplayerApi.reconnect).toHaveBeenCalledWith('room-1', 0));
+  });
+
+  it('navigates back to rooms and offers confirmed table abandonment', async () => {
+    const confirm = vi.spyOn(window, 'confirm').mockReturnValue(true);
+    vi.mocked(abandonTable).mockImplementation((_socket, _roomId, acknowledge) => acknowledge?.({ ok: true }));
+    const page = renderPage();
+    await screen.findByText('This table is closed.');
+
+    act(() => socketHandlers.connect?.());
+    fireEvent.click(screen.getByRole('button', { name: 'Back to rooms' }));
+    expect(screen.getByText('Rooms destination')).toBeInTheDocument();
+    page.unmount();
+
+    const abandonPage = renderPage();
+    await screen.findByText('This table is closed.');
+    act(() => socketHandlers.connect?.());
+    fireEvent.click(screen.getByRole('button', { name: 'Abandon game' }));
+
+    expect(confirm).toHaveBeenCalled();
+    expect(abandonTable).toHaveBeenCalledWith(socket, 'room-1', expect.any(Function));
+    abandonPage.unmount();
+    confirm.mockRestore();
   });
 });

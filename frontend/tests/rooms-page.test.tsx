@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RoomsPage } from '../src/pages/RoomsPage';
 
@@ -28,7 +29,7 @@ describe('RoomsPage', () => {
       .mockImplementationOnce(() => response({ invitations: [] }))
       .mockImplementationOnce(() => response([]));
 
-    render(<RoomsPage />);
+    render(<MemoryRouter><RoomsPage /></MemoryRouter>);
     expect(await screen.findByText('Open Table')).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'New Table' } });

@@ -239,3 +239,24 @@ export function submitAction(hand: HandState, action: Action): void {
   applyAction(hand, action);
   advance(hand);
 }
+
+export function abandonSeat(hand: HandState, seatNumber: number): void {
+  const seat = hand.seats.find((candidate) => candidate.seatNumber === seatNumber);
+  if (!seat || seat.folded || hand.bettingRound === 'complete' || hand.bettingRound === 'abandoned') return;
+
+  if (hand.seatToAct === seatNumber) {
+    submitAction(hand, {
+      seatNumber,
+      type: 'fold',
+      amount: null,
+      bettingRound: hand.bettingRound
+    });
+    return;
+  }
+
+  seat.folded = true;
+  seat.isAllIn = false;
+  seat.actedThisStreet = true;
+  const remaining = hand.seats.filter((candidate) => !candidate.folded);
+  if (remaining.length === 1) awardWithoutShowdown(hand, remaining[0]);
+}

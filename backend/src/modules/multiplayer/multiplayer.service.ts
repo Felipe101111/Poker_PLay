@@ -1,7 +1,7 @@
 import { MultiplayerActionType, RoomStatus } from '@prisma/client';
 import { prisma } from '../../db/prisma/client.js';
 import { ApiError } from '../../shared/errors.js';
-import { startHand, submitAction } from '../../poker-engine/engine.js';
+import { abandonSeat, startHand, submitAction } from '../../poker-engine/engine.js';
 import { createTableFromStartedRoom, findTableByRoom, findTableForUser, findExpiredDisconnectedParticipants, markParticipantConnected, markParticipantDisconnected, readHandState, recordRejectedAction, touchParticipant } from './multiplayer.repository.js';
 import { systemPresenceClock, shouldAutoFoldDisconnectedActingSeat } from './multiplayer.presence.js';
 import { projectTable } from './multiplayer.projection.js';
@@ -54,6 +54,97 @@ export const multiplayerService = {
     const refreshed = await findTableForUser(roomId, userId);
     if (!refreshed) fail(404, 'TABLE_NOT_FOUND', 'No such table');
     return { table: projectTable(refreshed, userId) };
+  },
+
+  async abandon(roomId: string, userId: string) {
+    await assertStartedRoomMember(roomId, userId);
+    const table = await loadOrBootstrap(roomId);
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "multiplayer_tables" WHERE "id" = ${table.id} FOR UPDATE`;
+      const locked = await findTableByRoom(roomId, tx);
+      if (!locked) fail(404, 'TABLE_NOT_FOUND', 'No such table');
+      const participant = locked.participants.find((item) => item.userId === userId);
+      const member = locked.room.members.find((item) => item.userId === userId);
+      if (!participant || !member) fail(403, 'ROOM_ACCESS_DENIED', 'You are not authorized to leave this table');
+
+      const nextVersion = locked.stateVersion + 1;
+      const hand = locked.currentHand ? readHandState(locked.currentHand.stateSnapshot) : null;
+      if (hand && locked.status === 'ACTIVE') abandonSeat(hand, participant.seatNumber);
+      const handCompleted = Boolean(hand && hand.bettingRound === 'complete' && locked.currentHand?.status === 'ACTIVE');
+
+      if (hand && locked.currentHand) {
+        await tx.multiplayerHand.update({
+          where: { id: locked.currentHand.id },
+          data: {
+            stateSnapshot: hand as unknown as object,
+            stateVersion: locked.currentHand.stateVersion + 1,
+            actingSeat: hand.seatToAct,
+            ...(handCompleted ? { status: 'COMPLETED', completedAt: new Date(), resultSnapshot: hand.result as object } : {})
+          }
+        });
+      }
+
+      for (const item of locked.participants) {
+        const seat = hand?.seats.find((candidate) => candidate.seatNumber === item.seatNumber);
+        await tx.tableParticipant.update({
+          where: { id: item.id },
+          data: {
+            ...(seat ? { stack: seat.stack } : {}),
+            ...(item.userId === userId
+              ? { eligibleForNextHand: false, connectionStatus: 'ELIMINATED', eliminatedAt: new Date() }
+              : handCompleted && seat?.stack === 0
+                ? { eligibleForNextHand: false, connectionStatus: 'ELIMINATED', eliminatedAt: new Date() }
+                : {})
+          }
+        });
+      }
+      await tx.roomMember.delete({ where: { id: member.id } });
+
+      const eligible = locked.participants.filter((item) => {
+        if (item.userId === userId || !item.eligibleForNextHand) return false;
+        const seat = hand?.seats.find((candidate) => candidate.seatNumber === item.seatNumber);
+        return (seat?.stack ?? item.stack) > 0;
+      });
+      const closeTable = handCompleted && eligible.length < 2;
+      if (handCompleted && eligible.length >= 2) {
+        const ordered = [...locked.participants].sort((left, right) => left.seatNumber - right.seatNumber);
+        const currentIndex = ordered.findIndex((item) => item.seatNumber === locked.dealerSeat);
+        const nextDealer = [...ordered.slice(currentIndex + 1), ...ordered.slice(0, currentIndex + 1)]
+          .find((item) => eligible.some((candidate) => candidate.id === item.id))!;
+        const startingStacks = ordered.map((item) => item.userId !== userId && item.eligibleForNextHand
+          ? hand!.seats.find((seat) => seat.seatNumber === item.seatNumber)?.stack ?? 0
+          : 0);
+        const nextHand = startHand(locked.room.hostId, ordered.length, 1, undefined, startingStacks, nextDealer.seatNumber);
+        const createdNextHand = await tx.multiplayerHand.create({
+          data: {
+            tableId: locked.id,
+            handNumber: locked.handNumber + 1,
+            stateSnapshot: nextHand as unknown as object,
+            stateVersion: nextVersion,
+            actingSeat: nextHand.seatToAct
+          }
+        });
+        await tx.multiplayerTable.update({
+          where: { id: locked.id },
+          data: {
+            handNumber: locked.handNumber + 1,
+            dealerSeat: nextDealer.seatNumber,
+            currentHandId: createdNextHand.id,
+            stateVersion: nextVersion
+          }
+        });
+      } else {
+        await tx.multiplayerTable.update({
+          where: { id: locked.id },
+          data: { stateVersion: nextVersion, ...(closeTable ? { status: 'CLOSED', closedAt: new Date() } : {}) }
+        });
+      }
+      if (closeTable) {
+        await tx.pokerRoom.update({ where: { id: roomId }, data: { status: 'CLOSED', closedAt: new Date() } });
+        await tx.roomMember.deleteMany({ where: { roomId } });
+      }
+      return { cause: 'PLAYER_ELIMINATED' as const, stateVersion: nextVersion };
+    });
   },
 
   async heartbeat(roomId: string, userId: string) {
@@ -199,6 +290,7 @@ export const multiplayerService = {
       }
 
       const eligible = locked.participants.filter((participant) => {
+        if (!participant.eligibleForNextHand) return false;
         const seat = hand.seats.find((item) => item.seatNumber === participant.seatNumber);
         return seat && seat.stack > 0;
       });
@@ -207,7 +299,7 @@ export const multiplayerService = {
         const ordered = [...locked.participants].sort((a, b) => a.seatNumber - b.seatNumber);
         const currentIndex = ordered.findIndex((participant) => participant.seatNumber === locked.dealerSeat);
         const nextDealer = [...ordered.slice(currentIndex + 1), ...ordered.slice(0, currentIndex + 1)].find((participant) => eligible.some((item) => item.id === participant.id))!;
-        const startingStacks = ordered.map((participant) => hand.seats.find((seat) => seat.seatNumber === participant.seatNumber)?.stack ?? 0);
+        const startingStacks = ordered.map((participant) => participant.eligibleForNextHand ? hand.seats.find((seat) => seat.seatNumber === participant.seatNumber)?.stack ?? 0 : 0);
         const nextHand = startHand(locked.room.hostId, ordered.length, 1, undefined, startingStacks, nextDealer.seatNumber);
         const createdNextHand = await tx.multiplayerHand.create({
           data: {

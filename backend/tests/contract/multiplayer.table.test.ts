@@ -2,6 +2,7 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import request from 'supertest';
 import { buildTestApp, disconnectDatabase, resetDatabase } from '../helpers/testApp.js';
 import { createStartedMultiplayerRoom, registerAndLoginMultiplayerUser } from '../helpers/multiplayer.js';
+import { multiplayerService } from '../../src/modules/multiplayer/multiplayer.service.js';
 
 const app = buildTestApp();
 
@@ -36,5 +37,26 @@ describe('multiplayer table HTTP contract', () => {
     expect(response.status).toBe(200);
     expect(response.body.table.roomId).toBe(fixture.roomId);
     expect(response.body.table.stateVersion).toBeGreaterThanOrEqual(0);
+  });
+
+  it('lets a player abandon, create another room, and leaves the other members playing', async () => {
+    const fixture = await createStartedMultiplayerRoom(app, 'table-abandon', 3);
+    await fixture.host.agent.get(`/api/rooms/${fixture.roomId}/table`);
+
+    await multiplayerService.abandon(fixture.roomId, fixture.host.id);
+
+    const currentRoom = await fixture.host.agent.get('/api/rooms/current');
+    const newRoom = await fixture.host.agent.post('/api/rooms').send({
+      name: 'Another table', visibility: 'PUBLIC', seatLimit: 2, minPlayers: 2,
+      startingStackBB: 100, smallBlind: 1, bigBlind: 2
+    });
+    const remainingPlayerTable = await fixture.guest.agent.get(`/api/rooms/${fixture.roomId}/table`);
+
+    expect(currentRoom.status).toBe(200);
+    expect(currentRoom.body.room).toBeNull();
+    expect(newRoom.status).toBe(201);
+    expect(remainingPlayerTable.status).toBe(200);
+    expect(remainingPlayerTable.body.table.currentHand.players.find((player: { userId: string }) => player.userId === fixture.host.id))
+      .toMatchObject({ eliminated: true, folded: true, holeCards: null });
   });
 });
