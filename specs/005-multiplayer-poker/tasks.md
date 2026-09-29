@@ -42,7 +42,7 @@ description: "Implementation task list for multiplayer poker tables"
 - [X] T014 Refactor `backend/src/server.ts` to create one HTTP server, attach Socket.IO, and expose the server lifecycle needed by production startup and integration tests while keeping `backend/src/app.ts` usable for HTTP-only tests.
 - [X] T015 Add Socket.IO session authentication middleware in `backend/src/modules/multiplayer/multiplayer.socket.ts` that reads the existing session cookie/store, attaches the authenticated user ID, rejects unauthenticated connections, and never trusts a client-supplied user ID.
 - [X] T016 Register the multiplayer HTTP router and shared error handling in `backend/src/app.ts`, and register Socket.IO table event handlers from `backend/src/server.ts` through the multiplayer module boundary.
-- [ ] T017 Add foundational test helpers for database cleanup, authenticated sessions, started-room fixtures, deterministic engine seeds, and Socket.IO client connections in `backend/tests/helpers/testApp.ts` and `backend/tests/helpers/multiplayer.ts`.
+- [X] T017 Add foundational test helpers for database cleanup, authenticated sessions, started-room fixtures, deterministic engine seeds, and Socket.IO client connections in `backend/tests/helpers/testApp.ts` and `backend/tests/helpers/multiplayer.ts`.
 
 **Checkpoint**: The database can represent one table and fixed roster, HTTP/socket identities are authenticated, projections redact private data, and the app/server test harness can create an authorized started table.
 
@@ -56,9 +56,9 @@ description: "Implementation task list for multiplayer poker tables"
 
 ### Tests for User Story 1
 
-- [ ] T018 [P] [US1] Add HTTP contract tests for `GET /api/rooms/:roomId/table` and `POST /api/rooms/:roomId/table/reconnect` in `backend/tests/contract/multiplayer-table.test.ts`, covering `200`, authentication, membership, missing-table, and closed-table responses.
-- [ ] T019 [P] [US1] Add projection unit tests in `backend/tests/unit/multiplayer-projection.test.ts` proving each participant sees only their own hole cards before showdown and that raw deck/persistence fields never appear.
-- [ ] T020 [P] [US1] Add Socket.IO join/snapshot integration tests in `backend/tests/integration/multiplayer-socket.test.ts`, covering authenticated `table:join`, room authorization, idempotent join, and per-user snapshots.
+- [X] T018 [P] [US1] Add HTTP contract tests for `GET /api/rooms/:roomId/table` and `POST /api/rooms/:roomId/table/reconnect` in `backend/tests/contract/multiplayer-table.test.ts`, covering `200`, authentication, membership, missing-table, and closed-table responses.
+- [X] T019 [P] [US1] Add projection unit tests in `backend/tests/unit/multiplayer-projection.test.ts` proving each participant sees only their own hole cards before showdown and that raw deck/persistence fields never appear.
+- [X] T020 [P] [US1] Add Socket.IO join/snapshot integration tests in `backend/tests/integration/multiplayer-socket.test.ts`, covering authenticated `table:join`, room authorization, idempotent join, and per-user snapshots.
 
 ### Implementation for User Story 1
 
@@ -154,7 +154,7 @@ description: "Implementation task list for multiplayer poker tables"
 - [ ] T053 [P] Add authorization/security regression coverage in `backend/tests/contract/multiplayer-security.test.ts` for crafted private-card reads, forged user/seat IDs, non-member socket joins, room mismatches, and malformed payloads.
 - [ ] T054 [P] Add state-projection and event-version regression coverage in `backend/tests/integration/multiplayer-consistency.test.ts` for delayed/duplicated broadcasts, missed delivery, post-commit recovery, and no state rollback.
 - [ ] T055 [P] Add frontend accessibility and error-state coverage in `frontend/tests/multiplayer-table.test.tsx` for keyboard action controls, readable turn/status messaging, loading states, connection loss, authorization errors, and table closure.
-- [ ] T056 Update `backend/README.md` and `README.md` with the final table lifecycle, event/reconnect behavior, timeout policy, private-card boundary, and no-tournament/no-real-money scope.
+- [X] T056 Update `backend/README.md` and `README.md` with the final table lifecycle, event/reconnect behavior, timeout policy, private-card boundary, and no-tournament/no-real-money scope.
 - [ ] T057 Add operational logging/metrics around action latency, stale conflicts, socket connections, reconnects, timeout folds, table closure, and projection failures in `backend/src/modules/multiplayer/` without logging private cards or credentials.
 - [ ] T058 Run the full backend and frontend test suites, builds, lint checks, migration deployment, and every scenario in `specs/005-multiplayer-poker/quickstart.md`; record any environment prerequisites or residual gaps in the feature documentation.
 

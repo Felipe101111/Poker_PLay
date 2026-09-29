@@ -6,6 +6,7 @@ import { createTableFromStartedRoom, findTableByRoom, findTableForUser, findExpi
 import { systemPresenceClock, shouldAutoFoldDisconnectedActingSeat } from './multiplayer.presence.js';
 import { projectTable } from './multiplayer.projection.js';
 import type { ReconnectInput, TableActionInput } from './multiplayer.validation.js';
+import type { TableStateChangeCause } from './multiplayer.types.js';
 
 function fail(status: number, code: ConstructorParameters<typeof ApiError>[1], message: string): never {
   throw new ApiError(status, code, message);
@@ -95,22 +96,23 @@ export const multiplayerService = {
   async act(roomId: string, userId: string, input: TableActionInput) {
     await assertStartedRoomMember(roomId, userId);
     const table = await loadOrBootstrap(roomId);
-    if (table.status === 'CLOSED') fail(409, 'TABLE_CLOSED', 'This table is closed');
 
     let rejection: ApiError | null = null;
+    let cause: TableStateChangeCause = 'ACTION_ACCEPTED';
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT "id" FROM "multiplayer_tables" WHERE "id" = ${table.id} FOR UPDATE`;
       const locked = await findTableByRoom(roomId, tx);
       if (!locked || !locked.currentHand) fail(404, 'TABLE_NOT_FOUND', 'No active table hand');
 
-      const duplicate = await tx.tableAction.findUnique({
-        where: { handId_userId_requestId: { handId: locked.currentHand.id, userId, requestId: input.requestId } }
+      const duplicate = await tx.tableAction.findFirst({
+        where: { requestId: input.requestId, userId, hand: { tableId: locked.id } }
       });
       if (duplicate) {
         if (duplicate.accepted) return;
         rejection = new ApiError(409, (duplicate.rejectionCode as ConstructorParameters<typeof ApiError>[1]) ?? 'DUPLICATE_ACTION', 'This action was already rejected');
         return;
       }
+      if (locked.status === 'CLOSED') fail(409, 'TABLE_CLOSED', 'This table is closed');
       if (locked.currentHand.id !== input.handId || locked.currentHand.stateVersion !== input.expectedVersion) {
         fail(409, 'STALE_GAME_STATE', 'The table has advanced. Refresh the current table state.');
       }
@@ -187,6 +189,7 @@ export const multiplayerService = {
         return seat && seat.stack > 0;
       });
       if (completed && eligible.length >= 2) {
+        cause = eligible.length < locked.participants.length ? 'PLAYER_ELIMINATED' : 'HAND_COMPLETED';
         const ordered = [...locked.participants].sort((a, b) => a.seatNumber - b.seatNumber);
         const currentIndex = ordered.findIndex((participant) => participant.seatNumber === locked.dealerSeat);
         const nextDealer = [...ordered.slice(currentIndex + 1), ...ordered.slice(0, currentIndex + 1)].find((participant) => eligible.some((item) => item.id === participant.id))!;
@@ -197,6 +200,7 @@ export const multiplayerService = {
             tableId: locked.id,
             handNumber: locked.handNumber + 1,
             stateSnapshot: nextHand as unknown as object,
+            stateVersion: nextVersion,
             actingSeat: nextHand.seatToAct
           }
         });
@@ -205,6 +209,7 @@ export const multiplayerService = {
           data: { handNumber: locked.handNumber + 1, dealerSeat: nextDealer.seatNumber, currentHandId: createdNextHand.id, stateVersion: nextVersion }
         });
       } else {
+        if (completed) cause = eligible.length < locked.participants.length ? 'PLAYER_ELIMINATED' : 'TABLE_CLOSED';
         await tx.multiplayerTable.update({
           where: { id: locked.id },
           data: { stateVersion: nextVersion, ...(completed ? { status: 'CLOSED', closedAt: new Date() } : {}) }
@@ -216,6 +221,6 @@ export const multiplayerService = {
 
     const updated = await findTableForUser(roomId, userId);
     if (!updated) fail(404, 'TABLE_NOT_FOUND', 'No such table');
-    return { table: projectTable(updated, userId) };
+    return { table: projectTable(updated, userId), cause };
   }
 };

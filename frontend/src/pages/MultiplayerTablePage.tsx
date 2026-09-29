@@ -47,7 +47,7 @@ export function MultiplayerTablePage() {
         ...current,
         currentHand: current.currentHand ? {
           ...current.currentHand,
-          players: current.currentHand.players.map((player) => player.userId === event.userId ? { ...player, connectionStatus: event.connectionStatus } : player)
+          players: current.currentHand.players.map((player) => player.userId === event.userId ? { ...player, connectionStatus: event.status } : player)
         } : null
       } : current);
     };

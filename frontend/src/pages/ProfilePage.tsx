@@ -71,6 +71,8 @@ export function ProfilePage() {
       <p>
         <Link to="/friends">Añadir amigo</Link>
         {' · '}
+        <Link to="/hand-history">Hand history</Link>
+        {' · '}
         <Link to="/rooms">Play multiplayer</Link>
         {' · '}
         <Link to="/local-game">Play local game</Link>

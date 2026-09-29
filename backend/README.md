@@ -55,6 +55,28 @@ Postflop sessions use the dedicated `/api/trainer/postflop/session/*` endpoints.
 
 The response exposes only the player's cards, visible board, pot, position, legal actions, and ordered decision review. Raw decks, future cards, opponent hole cards, internal engine bookkeeping, client ranges, and client strategy versions are never accepted or projected. Strategy availability and exact-equity limitations are retained in immutable evaluation snapshots. Apply `20260928000500_add_postflop_trainer` with `npm.cmd run prisma:migrate:deploy` before running the postflop contract suite. See [../specs/008-poker-trainer-postflop/quickstart.md](../specs/008-poker-trainer-postflop/quickstart.md) and [../specs/008-poker-trainer-postflop/contracts/trainer-postflop-http.md](../specs/008-poker-trainer-postflop/contracts/trainer-postflop-http.md).
 
+## Hand history (feature 009)
+
+Hand history is persisted separately from active game state and accepts only terminal snapshots through the internal publisher boundary. Authenticated clients use `GET /api/hand-history` for bounded filters and pagination, `GET /api/hand-history/:historyId` for ordered detail, and `DELETE /api/hand-history/:historyId` to remove their own association. Responses omit raw decks, unauthorized private cards, and engine state; shared records retain other participants through anonymization. See [../specs/009-hand-history/quickstart.md](../specs/009-hand-history/quickstart.md) for migration, focused tests, privacy checks, and the deferred Feature 010-013 roadmap.
+
+## Hand replay (feature 010)
+
+Authenticated users can request `GET /api/hand-history/:historyId/replay` for an authorized terminal history. The response contains the projected initial state, ordered visible events, terminal state, and explicit limitation records for legacy gaps, anonymized data, unavailable states, or empty timelines. Unauthorized and nonexistent IDs share the same not-found response; replay never writes to the history record. See [../specs/010-hand-replay/quickstart.md](../specs/010-hand-replay/quickstart.md).
+
+## Hand analytics (feature 011)
+
+`GET /api/hand-history/analytics` is an authenticated, read-only aggregation over terminal histories that the session user may list. Optional `from`, `to`, `format`, and `relatedLimit` query parameters define one effective scope for the complete response. The response contains summary values, daily trend points, VPIP/PFR/3-bet/win-rate metrics with numerator, denominator, and a 30-observation sufficiency threshold, position/street breakdowns, limitations, and up to 50 related hands.
+
+Analytics reads the optional public `publicSnapshot.analytics` block. Legacy histories without that block remain valid and produce explicit `DATA_UNAVAILABLE` limitations with null values; the service does not infer gains or EV and introduces no Prisma migration. Related hands contain only identifiers, dates, format, contribution labels, and authorization flags.
+
+## Strategy administration (feature 012)
+
+Editorial administration is session-authenticated and role-guarded under `/api/strategy/admin`. `EDITOR` users create datasets and drafts, `REVIEWER` users validate and inspect history, `PUBLISHER` users publish or retire versions, and `ADMIN` users also manage roles and audit access. Draft edits require `expectedRevision`; publication is transactional and replaces only the active compatible version. Published and retired versions cannot be edited. Apply migration `20260928090000_strategy_administration` with `npm.cmd run prisma:migrate:deploy` before running the administration contract suite. The browser editor is available at `/strategy/administration`.
+
+## Multiplayer tables (feature 005)
+
+Started rooms expose one server-authoritative table at `/api/rooms/:roomId/table` and `/api/rooms/:roomId/table/actions`; Socket.IO events use the authenticated session and the same authorization/projection rules. PostgreSQL persists table, hand, participant, presence, and idempotent action state. Reconnect retains the fixed seat, and disconnected acting players are auto-folded after 60 seconds. The feature uses virtual chips only and excludes tournaments, real-money balances, and multi-table play. See [../specs/005-multiplayer-poker/quickstart.md](../specs/005-multiplayer-poker/quickstart.md).
+
 ## Local Poker Engine API (feature 003)
 
 The pure Poker Engine lives in `src/poker-engine/` and has no Express, Prisma, Zod, or frontend dependencies. It owns card dealing, blind posting, legal actions, betting-round transitions, pot calculation, hand evaluation, showdown, and server-side result awarding. The local-games module is only the authenticated HTTP/in-memory wrapper around that engine.

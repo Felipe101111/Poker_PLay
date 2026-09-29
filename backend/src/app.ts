@@ -12,6 +12,8 @@ import { localGamesRouter } from './modules/local-games/local-games.routes.js';
 import { roomsRouter } from './modules/rooms/rooms.routes.js';
 import { multiplayerRouter } from './modules/multiplayer/multiplayer.routes.js';
 import { trainerRouter } from './modules/trainer/trainer.routes.js';
+import { handHistoryRouter } from './modules/hand-history/hand-history.routes.js';
+import { strategyAdminRouter } from './modules/strategy/strategy.admin.routes.js';
 
 dotenv.config();
 
@@ -71,6 +73,8 @@ export function createApp() {
   app.use('/api/rooms', roomsRouter);
   app.use('/api/rooms', multiplayerRouter);
   app.use('/api/trainer', trainerRouter);
+  app.use('/api/hand-history', handHistoryRouter);
+  app.use('/api/strategy/admin', strategyAdminRouter);
 
   // Centralized error handler: always responds with { error: { code, message } }.
   app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {

@@ -8,8 +8,8 @@
 
 ## Decision 2: Mantener una sola secuencia de entrenamiento para flop, turn y river
 
-- **Decision**: Una sesión postflop tendrá escenarios ordenados por `sequence`; cada decisión completada habilita la siguiente calle o el siguiente punto de decisión. No se crea una Feature 009 separada.
-- **Rationale**: Permite recuperar la progresión completa y conservar resultados por calle sin mezclarla con el historial general de manos de Feature 010.
+- **Decision**: Una sesión postflop tendrá escenarios ordenados por `sequence`; cada decisión completada habilita la siguiente calle o el siguiente punto de decisión. El historial general queda reservado para Feature 009.
+- **Rationale**: Permite recuperar la progresión completa y conservar resultados por calle sin mezclarla con el historial general de manos de Feature 009.
 - **Alternatives considered**: Tres sesiones independientes por calle fueron rechazadas porque rompen continuidad y dificultan la explicación acumulada.
 
 ## Decision 3: El servidor deriva todos los datos sensibles y legales

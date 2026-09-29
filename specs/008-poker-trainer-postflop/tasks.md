@@ -11,7 +11,7 @@ description: "Implementation task list for Poker Trainer postflop completo"
 
 **Tests**: Required by the specification and constitution. Add focused tests before each story's implementation and run the existing regression suite before completion.
 
-**Organization**: Tasks are grouped by user story. Feature 008 includes flop, turn, and river; no separate Feature 009 is created.
+**Organization**: Tasks are grouped by user story. Feature 008 includes flop, turn, and river; Feature 009 owns the general hand history.
 
 ## Phase 1: Setup (Shared Infrastructure)
 
@@ -130,7 +130,7 @@ description: "Implementation task list for Poker Trainer postflop completo"
 
 - [X] T039 [US4] Implement ordered scenario/decision retrieval and latest-sequence projection for postflop sessions in `backend/src/modules/trainer/trainer.repository.ts`, `backend/src/modules/trainer/trainer.service.ts`, and `backend/src/modules/trainer/trainer.projection.ts`.
 - [X] T040 [US4] Add cumulative street explanation fields linking board changes, position, stack, pot, prior actions, range/blocker constraints, and limitations in `backend/src/modules/trainer/trainer.evaluation.ts` and `backend/src/modules/trainer/trainer.types.ts`.
-- [X] T041 [US4] Render the ordered postflop review and recovery experience without implementing Feature 010 general hand history in `frontend/src/pages/TrainerPage.tsx` and `frontend/src/pages/TrainerProgressPage.tsx`.
+- [X] T041 [US4] Render the ordered postflop review and recovery experience without implementing Feature 009 general hand history in `frontend/src/pages/TrainerPage.tsx` and `frontend/src/pages/TrainerProgressPage.tsx`.
 
 **Checkpoint**: Completed postflop decisions remain reviewable in order and preserve their original evaluation data.
 
@@ -143,7 +143,7 @@ description: "Implementation task list for Poker Trainer postflop completo"
 - [X] T042 [P] Add security regression coverage for forged boards/ranges/strategy versions, future-card leakage, raw deck access, opponent private cards, foreign sessions, and cross-user snapshots in `backend/tests/contract/trainer-postflop-security.test.ts`.
 - [X] T043 [P] Add representative flop/turn/river exact-equity performance coverage with p50, p95, runout counts, and memory observations in `backend/tests/performance/trainer-postflop-performance.test.ts`.
 - [X] T044 [P] Add Feature 006 regression coverage proving preflop session start, decision idempotency, continuation, projection redaction, and progress behavior remain unchanged in `backend/tests/contract/trainer-postflop-regression.test.ts`.
-- [X] T045 Update `backend/README.md` and `README.md` with postflop setup, street sequence, terminal behavior, strategy availability, privacy boundary, and the Feature 010–014 roadmap in `specs/008-poker-trainer-postflop/quickstart.md`.
+- [X] T045 Update `backend/README.md` and `README.md` with postflop setup, street sequence, terminal behavior, strategy availability, privacy boundary, and the Feature 009–013 roadmap in `specs/008-poker-trainer-postflop/quickstart.md`.
 - [X] T046 Run Prisma validation/migration deploy, focused postflop tests, complete backend/frontend suites, builds, security scenarios, and the p95 target from `specs/008-poker-trainer-postflop/quickstart.md`.
 
 ---
@@ -217,11 +217,11 @@ Task: Add strategy snapshot integration tests in backend/tests/integration/train
 2. Add US3 exact equity, blockers, strategy versions, mixed frequencies, and unavailable behavior.
 3. Add US4 ordered explanations and recovery.
 4. Complete security, regression, performance, documentation, and full quickstart validation.
-5. Do not create Feature 009 separately; its turn/river scope is part of Feature 008.
+5. Feature 009 owns general hand history and does not change the postflop sequence scope of Feature 008.
 
 ## Notes
 
 - Every task uses `- [ ] T###`, includes a file path, and includes `[US#]` only in user-story phases.
 - `[P]` marks tasks that can be worked on independently without incomplete-file dependencies.
 - The server remains authoritative for poker rules, state transitions, cards, board, ranges, equity, strategy, and projections.
-- Feature 010 owns general hand history; Feature 011 owns tournaments; Feature 012 owns advanced statistics; Feature 013 owns operational security; Feature 014 owns broad UI polish.
+- Feature 009 owns general hand history; Feature 010 owns replay; Feature 011 owns analytics; Feature 012 owns administration; Feature 013 owns multiplayer training.

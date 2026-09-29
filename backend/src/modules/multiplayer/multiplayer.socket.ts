@@ -9,14 +9,14 @@ type SessionSocket = Socket & { data: { userId: string; tableRooms: Set<string> 
 
 type SocketPayload = { roomId?: unknown; lastSeenVersion?: unknown; handId?: unknown; expectedVersion?: unknown; requestId?: unknown; type?: unknown; amount?: unknown };
 
-async function broadcastSnapshot(io: Server, roomId: string) {
+async function broadcastSnapshot(io: Server, roomId: string, cause = 'ACTION_ACCEPTED') {
   const sockets = await io.in(tableRoom(roomId)).fetchSockets();
   await Promise.all(
     sockets.map(async (rawSocket) => {
       const socket = rawSocket as unknown as SessionSocket;
       try {
         const snapshot = await multiplayerService.getTable(roomId, socket.data.userId);
-        socket.emit('table:state-changed', { roomId, stateVersion: snapshot.table.stateVersion, cause: 'ACTION_ACCEPTED', table: snapshot.table });
+        socket.emit('table:state-changed', { roomId, stateVersion: snapshot.table.stateVersion, cause, table: snapshot.table });
       } catch {
         socket.emit('table:error', { code: 'TABLE_NOT_FOUND', message: 'The table is no longer available' });
       }
@@ -46,8 +46,22 @@ export function registerMultiplayerSocket(io: Server) {
     activeConnections.delete(key);
     return true;
   };
-  const broadcastPresence = (roomId: string, userId: string, status: 'ONLINE' | 'DISCONNECTED') => {
-    io.in(tableRoom(roomId)).emit('table:presence-changed', { roomId, userId, connectionStatus: status });
+  const broadcastPresence = async (roomId: string, userId: string, status: 'ONLINE' | 'DISCONNECTED') => {
+    let snapshot;
+    try {
+      snapshot = await multiplayerService.getTable(roomId, userId);
+    } catch {
+      return;
+    }
+    const player = snapshot.table.currentHand?.players.find((item) => item.userId === userId);
+    if (!player) return;
+    io.in(tableRoom(roomId)).emit('table:presence-changed', {
+      roomId,
+      stateVersion: snapshot.table.stateVersion,
+      userId,
+      seatNumber: player.seatNumber,
+      status
+    });
   };
 
   io.use((socket, next) => {
@@ -71,7 +85,7 @@ export function registerMultiplayerSocket(io: Server) {
         await socket.join(tableRoom(roomId));
         sessionSocket.data.tableRooms.add(tableRoom(roomId));
         addConnection(roomId, getUserId(socket)!, socket.id);
-        broadcastPresence(roomId, getUserId(socket)!, 'ONLINE');
+        await broadcastPresence(roomId, getUserId(socket)!, 'ONLINE');
         socket.emit('table:snapshot', { roomId, stateVersion: snapshot.table.stateVersion, table: snapshot.table });
         acknowledge?.({ ok: true });
       } catch (error) {
@@ -83,7 +97,7 @@ export function registerMultiplayerSocket(io: Server) {
       if (typeof payload?.roomId !== 'string') return;
       if (removeConnection(payload.roomId, getUserId(socket)!, socket.id)) {
         await multiplayerService.disconnect(payload.roomId, getUserId(socket)!);
-        broadcastPresence(payload.roomId, getUserId(socket)!, 'DISCONNECTED');
+        await broadcastPresence(payload.roomId, getUserId(socket)!, 'DISCONNECTED');
       }
       await socket.leave(tableRoom(payload.roomId));
       sessionSocket.data.tableRooms.delete(tableRoom(payload.roomId));
@@ -106,8 +120,8 @@ export function registerMultiplayerSocket(io: Server) {
         return;
       }
       try {
-        await multiplayerService.act(payload.roomId, getUserId(socket)!, parsed.data);
-        await broadcastSnapshot(io, payload.roomId);
+        const result = await multiplayerService.act(payload.roomId, getUserId(socket)!, parsed.data);
+        await broadcastSnapshot(io, payload.roomId, result.cause);
         acknowledge?.({ ok: true });
       } catch (error) {
         const apiError = error instanceof ApiError ? error : new ApiError(500, 'INTERNAL_ERROR', 'Unexpected server error');
@@ -122,7 +136,7 @@ export function registerMultiplayerSocket(io: Server) {
       for (const roomId of rooms) {
         if (removeConnection(roomId, userId, socket.id)) {
           await multiplayerService.disconnect(roomId, userId);
-          broadcastPresence(roomId, userId, 'DISCONNECTED');
+          await broadcastPresence(roomId, userId, 'DISCONNECTED');
         }
       }
     });

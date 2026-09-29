@@ -33,4 +33,4 @@
 
 - Reviewed against the active project constitution and the completed Feature 006/007 contracts.
 - Feature 008 intentionally combines the former flop scope and the former turn/river scope.
-- Feature 009 must not be generated separately unless the roadmap is explicitly changed.
+- Feature 009 is reserved for the general hand history that follows this postflop feature.

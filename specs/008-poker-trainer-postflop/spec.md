@@ -58,7 +58,7 @@ Como jugador, quiero ver por separado la equity, las restricciones de rangos, la
 
 Como jugador, quiero revisar las decisiones de flop, turn y river dentro de la misma mano de entrenamiento, para relacionar mis acciones con los cambios del board, rangos y contexto.
 
-**Why this priority**: La explicación acumulada convierte las calles separadas en una experiencia pedagógica continua sin anticipar el alcance del historial completo de manos de Feature 010.
+**Why this priority**: La explicación acumulada convierte las calles separadas en una experiencia pedagógica continua sin anticipar el alcance del historial completo de manos de Feature 009.
 
 **Independent Test**: Completar una secuencia de calles y volver a cargar la sesión; comprobar que cada resultado permanezca visible en orden y que no se filtren cartas privadas futuras ni datos de otros participantes.
 
@@ -136,4 +136,4 @@ Como jugador, quiero revisar las decisiones de flop, turn y river dentro de la m
 - Los escenarios se generan con datos suficientes para una evaluación exacta cuando el contexto lo permita; cualquier limitación se informa explícitamente.
 - El alcance de esta feature incluye flop, turn y river en una sola secuencia, por lo que no se creará una Feature 009 separada.
 - El historial general de manos y su revisión transversal pertenecen a Feature 010; esta feature solo conserva el contexto necesario para continuar y revisar la secuencia de entrenamiento actual.
-- Los torneos, estadísticas avanzadas, seguridad operativa ampliada y pulido completo de UI quedan fuera de alcance y siguen el roadmap 011–014.
+- Los torneos, estadísticas avanzadas, seguridad operativa ampliada y pulido completo de UI quedan fuera de alcance y siguen el roadmap 010–013.

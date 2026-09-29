@@ -34,6 +34,14 @@ model User {
   trainingSessions        TrainingSession[]
   trainingDecisions       TrainingDecision[]
   equityStrategySnapshots EvaluationSnapshot[]
+  historyPolicies         HistoryAccessPolicy[]
+  historyParticipants     HandHistoryParticipant[]
+  createdStrategyVersions  StrategyDatasetVersion[] @relation("StrategyVersionCreatedBy")
+  publishedStrategyVersions StrategyDatasetVersion[] @relation("StrategyVersionPublishedBy")
+  retiredStrategyVersions  StrategyDatasetVersion[] @relation("StrategyVersionRetiredBy")
+  editorialAuditEntries    EditorialAuditEntry[]
+  publicationRecords       PublicationRecord[]
+  editorialRole             EditorialRole @default(USER)
 
   @@map("users")
 }
@@ -366,13 +374,36 @@ model RoomInvitation {
 }
 
 enum StrategyDatasetStatus {
+  DRAFT
   PUBLISHED
   RETIRED
 }
 
+enum EditorialRole {
+  USER
+  EDITOR
+  REVIEWER
+  PUBLISHER
+  ADMIN
+}
+
+model StrategyDataset {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  versions StrategyDatasetVersion[]
+
+  @@map("strategy_datasets")
+}
+
 model StrategyDatasetVersion {
   id               String                @id @default(uuid())
-  version          String                @unique
+  datasetId        String
+  version          String
   schemaVersion    String
   gameFormat       String
   street           String
@@ -384,13 +415,30 @@ model StrategyDatasetVersion {
   assumptions      Json
   precision        Decimal               @db.Decimal(12, 10)
   status           StrategyDatasetStatus @default(PUBLISHED)
-  publishedAt      DateTime              @default(now())
+  compatibilityKey String
+  activeCompatibilityKey String?          @unique
+  revision         Int                   @default(0)
+  validationReport Json?
+  createdById      String?
+  publishedById    String?
+  retiredById      String?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  publishedAt      DateTime?
   retiredAt        DateTime?
 
+  dataset   StrategyDataset @relation(fields: [datasetId], references: [id], onDelete: Cascade)
+  createdBy User? @relation("StrategyVersionCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedBy User? @relation("StrategyVersionPublishedBy", fields: [publishedById], references: [id], onDelete: SetNull)
+  retiredBy User? @relation("StrategyVersionRetiredBy", fields: [retiredById], references: [id], onDelete: SetNull)
   rows      StrategyRow[]
   snapshots EvaluationSnapshot[]
+  publicationRecords PublicationRecord[]
 
+  @@unique([datasetId, version])
   @@index([gameFormat, street, status])
+  @@index([datasetId, status, createdAt])
+  @@index([compatibilityKey, status])
   @@map("strategy_dataset_versions")
 }
 
@@ -408,6 +456,45 @@ model StrategyRow {
 
   @@unique([datasetVersionId, contextKey])
   @@map("strategy_rows")
+}
+
+model PublicationRecord {
+  id                    String   @id @default(uuid())
+  datasetVersionId      String
+  actorId               String
+  action                String
+  reason                String?
+  previousActiveVersionId String?
+  createdAt             DateTime @default(now())
+
+  datasetVersion StrategyDatasetVersion @relation(fields: [datasetVersionId], references: [id], onDelete: Cascade)
+  actor          User @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([datasetVersionId, createdAt])
+  @@index([actorId, createdAt])
+  @@map("strategy_publication_records")
+}
+
+model EditorialAuditEntry {
+  id               String   @id @default(uuid())
+  actorId          String?
+  actorRole        EditorialRole
+  action           String
+  entityType       String
+  entityId         String?
+  requestId        String?
+  expectedRevision Int?
+  result           String
+  reason           String?
+  metadata         Json?
+  createdAt        DateTime @default(now())
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("editorial_audit_entries")
 }
 
 model EvaluationSnapshot {
@@ -430,4 +517,133 @@ model EvaluationSnapshot {
   @@index([userId, createdAt])
   @@index([scenarioId, createdAt])
   @@map("evaluation_snapshots")
+}
+
+enum HandHistorySourceType {
+  LOCAL_GAME
+  MULTIPLAYER
+  TRAINER
+}
+
+enum HandHistoryStatus {
+  COMPLETED
+  FOLDED
+  ALL_IN
+  ABANDONED
+  ANONYMIZED
+}
+
+enum HandActionStreet {
+  PREFLOP
+  FLOP
+  TURN
+  RIVER
+  SHOWDOWN
+  TERMINAL
+}
+
+enum HandActionType {
+  FOLD
+  CHECK
+  CALL
+  BET
+  RAISE
+  ALL_IN
+  BLIND
+  DEAL
+  SHOWDOWN
+  TERMINAL
+}
+
+enum HandHistoryParticipantRole {
+  PLAYER
+  SPECTATOR
+}
+
+enum HandHistoryParticipantVisibility {
+  PARTICIPANT
+  AUTHORIZED_VIEWER
+  ANONYMIZED
+}
+
+enum HistoryRedactionProfile {
+  FULL_AUTHORIZED
+  PUBLIC_ONLY
+  ANONYMIZED
+}
+
+model HandHistory {
+  id              String                @id @default(uuid())
+  sourceType      HandHistorySourceType
+  sourceId        String
+  status          HandHistoryStatus
+  format          String
+  startedAt       DateTime
+  endedAt         DateTime
+  sequenceVersion Int                   @default(1)
+  publicSnapshot  Json
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  participants HandHistoryParticipant[]
+  actions      HandAction[]
+  policies     HistoryAccessPolicy[]
+
+  @@unique([sourceType, sourceId])
+  @@index([endedAt, id])
+  @@index([format, status, endedAt])
+  @@map("hand_histories")
+}
+
+model HandHistoryParticipant {
+  id                  String                              @id @default(uuid())
+  historyId           String
+  userId              String?
+  seatNumber          Int
+  displayNameSnapshot String?
+  role                HandHistoryParticipantRole          @default(PLAYER)
+  visibility          HandHistoryParticipantVisibility    @default(PARTICIPANT)
+
+  history HandHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+  user    User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([historyId, seatNumber])
+  @@index([userId, historyId])
+  @@map("hand_history_participants")
+}
+
+model HandAction {
+  id             String          @id @default(uuid())
+  historyId      String
+  sequence       Int
+  street         HandActionStreet
+  seatNumber     Int?
+  actionType     HandActionType
+  amount         Int?
+  publicStateAfter Json
+  occurredAt     DateTime
+
+  history HandHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+
+  @@unique([historyId, sequence])
+  @@index([historyId, sequence])
+  @@map("hand_actions")
+}
+
+model HistoryAccessPolicy {
+  id                String                 @id @default(uuid())
+  historyId         String
+  userId            String
+  canList           Boolean                @default(true)
+  canViewDetail     Boolean                @default(true)
+  canRequestRemoval Boolean                @default(true)
+  redactionProfile  HistoryRedactionProfile @default(FULL_AUTHORIZED)
+  anonymizedAt      DateTime?
+
+  history HandHistory @relation(fields: [historyId], references: [id], onDelete: Cascade)
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([historyId, userId])
+  @@index([userId, canList, historyId])
+  @@map("history_access_policies")
 }

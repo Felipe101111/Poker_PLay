@@ -33,7 +33,7 @@ export class StrategyService {
   lookup(input: unknown): StrategyLookupResult {
     const request: StrategyLookupRequest = validateStrategyLookup(input);
     const dataset = this.repository.getVersion(request.datasetVersion);
-    if (!dataset) return { availability: 'UNAVAILABLE', datasetVersion: request.datasetVersion, contextKey: request.contextKey, reason: 'STRATEGY_VERSION_NOT_FOUND' };
+    if (!dataset || dataset.status !== 'PUBLISHED') return { availability: 'UNAVAILABLE', datasetVersion: request.datasetVersion, contextKey: request.contextKey, reason: 'STRATEGY_VERSION_NOT_FOUND' };
     const row = this.repository.getRow(dataset.version, request.contextKey);
     if (!row || row.contextKey !== request.contextKey || dataset.gameFormat !== request.gameFormat || dataset.street !== request.street) {
       return { availability: 'UNAVAILABLE', datasetVersion: request.datasetVersion, contextKey: request.contextKey, reason: 'NO_COMPATIBLE_STRATEGY_ROW' };

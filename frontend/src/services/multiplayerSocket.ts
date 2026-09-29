@@ -21,8 +21,10 @@ export interface TableErrorEvent {
 
 export interface TablePresenceEvent {
   roomId: string;
+  stateVersion: number;
   userId: string;
-  connectionStatus: 'ONLINE' | 'DISCONNECTED';
+  seatNumber: number;
+  status: 'ONLINE' | 'DISCONNECTED';
 }
 
 export function createMultiplayerSocket() {

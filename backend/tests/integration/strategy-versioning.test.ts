@@ -9,6 +9,6 @@ describe('strategy versioning', () => {
     service.publish(version, [{ id: 'r1', datasetVersionId: 'v1', contextKey: 'BTN|AKs', range: null, actions: [{ action: { type: 'raise' }, frequency: 1 }], factors: [], assumptions: [], conditions: [] }]);
     expect(() => service.publish(version, [])).toThrow();
     service.retire('v1');
-    expect(service.lookup({ datasetVersion: 'v1', contextKey: 'BTN|AKs', gameFormat: version.gameFormat, street: 'preflop' }).availability).toBe('AVAILABLE');
+    expect(service.lookup({ datasetVersion: 'v1', contextKey: 'BTN|AKs', gameFormat: version.gameFormat, street: 'preflop' }).availability).toBe('UNAVAILABLE');
   });
 });

@@ -8,6 +8,11 @@ import { RoomsPage } from './pages/RoomsPage';
 import { MultiplayerTablePage } from './pages/MultiplayerTablePage';
 import { TrainerPage } from './pages/TrainerPage';
 import { TrainerProgressPage } from './pages/TrainerProgressPage';
+import { HandHistoryPage } from './pages/HandHistoryPage';
+import { HandHistoryDetailPage } from './pages/HandHistoryDetailPage';
+import { HandReplayPage } from './pages/HandReplayPage';
+import { AnalyticsPage } from './pages/AnalyticsPage';
+import { StrategyAdministrationPage } from './pages/StrategyAdministrationPage';
 
 export default function App() {
   return (
@@ -22,6 +27,11 @@ export default function App() {
         <Route path="/rooms/:roomId/table" element={<MultiplayerTablePage />} />
         <Route path="/trainer" element={<TrainerPage />} />
         <Route path="/trainer/progress" element={<TrainerProgressPage />} />
+        <Route path="/hand-history" element={<HandHistoryPage />} />
+        <Route path="/analytics" element={<AnalyticsPage />} />
+        <Route path="/strategy/administration" element={<StrategyAdministrationPage />} />
+        <Route path="/hand-history/:historyId/replay" element={<HandReplayPage />} />
+        <Route path="/hand-history/:historyId" element={<HandHistoryDetailPage />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
