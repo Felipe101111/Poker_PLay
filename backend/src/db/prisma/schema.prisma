@@ -31,6 +31,9 @@ model User {
   receivedRoomInvitations RoomInvitation[]     @relation("InvitationRecipient")
   tableParticipants       TableParticipant[]
   tableActions            TableAction[]
+  createdMultiplayerTrainingSessions MultiplayerTrainingSession[] @relation("MultiplayerTrainingSessionCreator")
+  multiplayerTrainingParticipants MultiplayerTrainingParticipant[]
+  multiplayerTrainingDecisions MultiplayerTrainingDecision[]
   trainingSessions        TrainingSession[]
   trainingDecisions       TrainingDecision[]
   equityStrategySnapshots EvaluationSnapshot[]
@@ -177,6 +180,7 @@ model MultiplayerTable {
   currentHand  MultiplayerHand?   @relation("CurrentTableHand", fields: [currentHandId], references: [id])
   hands        MultiplayerHand[]  @relation("TableHands")
   participants TableParticipant[]
+  trainingSession MultiplayerTrainingSession?
 
   @@index([status, updatedAt])
   @@map("multiplayer_tables")
@@ -198,6 +202,7 @@ model TableParticipant {
   table      MultiplayerTable @relation(fields: [tableId], references: [id], onDelete: Cascade)
   user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   roomMember RoomMember       @relation(fields: [roomMemberId], references: [id], onDelete: Cascade)
+  trainingParticipant MultiplayerTrainingParticipant?
 
   @@unique([tableId, userId])
   @@unique([tableId, seatNumber])
@@ -221,6 +226,7 @@ model MultiplayerHand {
   table      MultiplayerTable  @relation("TableHands", fields: [tableId], references: [id], onDelete: Cascade)
   currentFor MultiplayerTable? @relation("CurrentTableHand")
   actions    TableAction[]
+  trainingDecisions MultiplayerTrainingDecision[]
 
   @@unique([tableId, handNumber])
   @@index([tableId, status])
@@ -243,6 +249,7 @@ model TableAction {
 
   hand MultiplayerHand @relation(fields: [handId], references: [id], onDelete: Cascade)
   user User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  trainingDecision MultiplayerTrainingDecision?
 
   @@unique([handId, userId, requestId])
   @@unique([handId, sequence])
@@ -256,6 +263,7 @@ enum TrainingSessionFormat {
 }
 
 enum TrainingStreet {
+  PREFLOP
   FLOP
   TURN
   RIVER
@@ -283,6 +291,89 @@ enum TrainingEvaluationCategory {
   ACCEPTABLE_MIXED
   MARGINAL
   SIGNIFICANT_DEVIATION
+}
+
+enum MultiplayerTrainingSessionStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum MultiplayerTrainingParticipantStatus {
+  ENROLLED
+  LEFT
+  REMOVED
+}
+
+model MultiplayerTrainingSession {
+  id          String                            @id @default(uuid())
+  tableId     String                            @unique
+  format      TrainingSessionFormat             @default(SIX_MAX_100BB_PREFLOP)
+  status      MultiplayerTrainingSessionStatus  @default(ACTIVE)
+  createdById String
+  createdAt   DateTime                          @default(now())
+  completedAt DateTime?
+
+  table        MultiplayerTable                @relation(fields: [tableId], references: [id], onDelete: Cascade)
+  createdBy    User                             @relation("MultiplayerTrainingSessionCreator", fields: [createdById], references: [id], onDelete: Cascade)
+  participants MultiplayerTrainingParticipant[]
+  decisions    MultiplayerTrainingDecision[]
+
+  @@index([status, createdAt])
+  @@map("multiplayer_training_sessions")
+}
+
+model MultiplayerTrainingParticipant {
+  id                 String                               @id @default(uuid())
+  trainingSessionId  String
+  tableParticipantId String                               @unique
+  userId             String
+  status             MultiplayerTrainingParticipantStatus @default(ENROLLED)
+  joinedAt           DateTime                             @default(now())
+  leftAt             DateTime?
+
+  trainingSession  MultiplayerTrainingSession @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  tableParticipant TableParticipant           @relation(fields: [tableParticipantId], references: [id], onDelete: Cascade)
+  user             User                        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  decisions        MultiplayerTrainingDecision[]
+
+  @@unique([trainingSessionId, tableParticipantId])
+  @@unique([trainingSessionId, userId])
+  @@index([userId, status])
+  @@map("multiplayer_training_participants")
+}
+
+model MultiplayerTrainingDecision {
+  id                      String                        @id @default(uuid())
+  trainingSessionId       String
+  participantId           String
+  handId                  String
+  tableActionId           String                        @unique
+  userId                  String
+  sequence                Int
+  street                  TrainingStreet
+  decisionContextSnapshot Json
+  selectedAction          Json
+  evaluationStatus        TrainingEvaluationStatus
+  category                TrainingEvaluationCategory?
+  equitySnapshot          Json
+  strategyVersionSnapshot Json?
+  strategyRowSnapshot     Json?
+  explanationSnapshot     Json
+  calculationFingerprint  String?
+  createdAt               DateTime                      @default(now())
+
+  trainingSession    MultiplayerTrainingSession     @relation(fields: [trainingSessionId], references: [id], onDelete: Cascade)
+  participant        MultiplayerTrainingParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  hand               MultiplayerHand               @relation(fields: [handId], references: [id], onDelete: Cascade)
+  tableAction        TableAction                   @relation(fields: [tableActionId], references: [id], onDelete: Cascade)
+  user               User                          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  evaluationSnapshot EvaluationSnapshot?
+
+  @@unique([handId, userId, sequence])
+  @@index([trainingSessionId, userId, createdAt])
+  @@index([participantId, createdAt])
+  @@map("multiplayer_training_decisions")
 }
 
 model TrainingSession {
@@ -509,10 +600,12 @@ model EvaluationSnapshot {
   classification          String?
   availability            String
   calculationFingerprint  String?
+  multiplayerTrainingDecisionId String? @unique
   createdAt               DateTime @default(now())
 
   user           User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
   datasetVersion StrategyDatasetVersion? @relation(fields: [datasetVersionId], references: [id], onDelete: SetNull)
+  multiplayerTrainingDecision MultiplayerTrainingDecision? @relation(fields: [multiplayerTrainingDecisionId], references: [id], onDelete: SetNull)
 
   @@index([userId, createdAt])
   @@index([scenarioId, createdAt])

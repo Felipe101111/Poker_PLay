@@ -63,7 +63,7 @@ export function FriendsPage() {
   }
 
   return (
-    <div>
+    <div className="page-stack">
       <h1>Friends</h1>
       {error && <p role="alert">{error}</p>}
 

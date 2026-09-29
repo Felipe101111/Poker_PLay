@@ -111,7 +111,7 @@ export function RoomsPage() {
   const inviteableFriends = friends.filter((friend) => !selected?.members?.some((member) => member.userId === friend.id));
 
   return (
-    <main>
+    <main className="page-stack">
       <h1>Poker rooms</h1>
       {error && <p role="alert">{error}</p>}
       {message && <p role="status">{message}</p>}

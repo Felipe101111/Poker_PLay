@@ -29,7 +29,7 @@ export function RegisterPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="entry-page surface" onSubmit={handleSubmit}>
       <h1>Create your account</h1>
       {error && <p role="alert">{error}</p>}
       <label htmlFor="email">Email</label>

@@ -11,6 +11,7 @@ import { friendsRouter } from './modules/friends/friends.routes.js';
 import { localGamesRouter } from './modules/local-games/local-games.routes.js';
 import { roomsRouter } from './modules/rooms/rooms.routes.js';
 import { multiplayerRouter } from './modules/multiplayer/multiplayer.routes.js';
+import { multiplayerTrainingRouter } from './modules/multiplayer/multiplayer.training.routes.js';
 import { trainerRouter } from './modules/trainer/trainer.routes.js';
 import { handHistoryRouter } from './modules/hand-history/hand-history.routes.js';
 import { strategyAdminRouter } from './modules/strategy/strategy.admin.routes.js';
@@ -72,6 +73,7 @@ export function createApp() {
   app.use('/api/local-games', localGamesRouter);
   app.use('/api/rooms', roomsRouter);
   app.use('/api/rooms', multiplayerRouter);
+  app.use('/api/rooms', multiplayerTrainingRouter);
   app.use('/api/trainer', trainerRouter);
   app.use('/api/hand-history', handHistoryRouter);
   app.use('/api/strategy/admin', strategyAdminRouter);

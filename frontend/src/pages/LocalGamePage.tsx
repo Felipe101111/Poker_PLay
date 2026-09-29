@@ -61,7 +61,7 @@ export function LocalGamePage() {
   const legalActions = hand?.legalActions;
 
   return (
-    <div>
+    <div className="page-stack">
       <h1>Local Poker Table</h1>
       {error && <p role="alert">{error}</p>}
 

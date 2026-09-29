@@ -30,7 +30,7 @@ export function LoginPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form className="entry-page surface" onSubmit={handleSubmit}>
       <h1>Log in</h1>
       {error && <p role="alert">{error}</p>}
       <label htmlFor="email">Email</label>

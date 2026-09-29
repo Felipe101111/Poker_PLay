@@ -31,7 +31,7 @@ export function TrainerPage() {
   }
   if (busy && !state) return <main><p>Loading trainer...</p></main>;
   if (error && !state) return <main><p role="alert">{error}</p></main>;
-  return <main>
+  return <main className="page-stack">
     <h1>Poker Trainer</h1>
     {error && <p role="alert">{error}</p>}
     {message && <p role="status">{message}</p>}

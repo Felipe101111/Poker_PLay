@@ -3,6 +3,7 @@ import { ApiError } from '../../shared/errors.js';
 import { multiplayerService } from './multiplayer.service.js';
 import { reconnectSchema, tableActionSchema } from './multiplayer.validation.js';
 import { recordMultiplayerMetric } from './multiplayer.observability.js';
+import { emitLatestTrainingDecision, registerTrainingSocketEvents } from './multiplayer.training.socket.js';
 
 const tableRoom = (roomId: string) => `multiplayer-table:${roomId}`;
 
@@ -79,6 +80,7 @@ export function registerMultiplayerSocket(io: Server) {
 
   io.on('connection', (socket) => {
     const sessionSocket = socket as SessionSocket;
+    registerTrainingSocketEvents(socket, getUserId(socket)!);
     recordMultiplayerMetric('socket.connected', { userId: getUserId(socket) ?? 'unknown' });
     socket.on('table:join', async (payload: SocketPayload, acknowledge?: (response: unknown) => void) => {
       const roomId = typeof payload?.roomId === 'string' ? payload.roomId : '';
@@ -125,6 +127,7 @@ export function registerMultiplayerSocket(io: Server) {
       try {
         const result = await multiplayerService.act(payload.roomId, getUserId(socket)!, parsed.data);
         await broadcastSnapshot(io, payload.roomId, result.cause);
+        await emitLatestTrainingDecision(socket, payload.roomId, getUserId(socket)!);
         acknowledge?.({ ok: true });
       } catch (error) {
         const apiError = error instanceof ApiError ? error : new ApiError(500, 'INTERNAL_ERROR', 'Unexpected server error');

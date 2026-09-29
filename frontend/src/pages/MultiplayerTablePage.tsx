@@ -92,7 +92,7 @@ export function MultiplayerTablePage() {
   const hand = table.currentHand;
   const actions = hand?.legalActions?.actions ?? [];
   return (
-    <main>
+    <main className="page-stack">
       <h1>Live table</h1>
       <p>{connected ? 'Connected' : 'Connecting'} · Hand {table.handNumber} · Version {table.stateVersion}</p>
       {table.status === 'CLOSED' && <p role="status">This table is closed.</p>}

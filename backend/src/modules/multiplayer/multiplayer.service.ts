@@ -8,6 +8,7 @@ import { projectTable } from './multiplayer.projection.js';
 import type { ReconnectInput, TableActionInput } from './multiplayer.validation.js';
 import type { TableStateChangeCause } from './multiplayer.types.js';
 import { recordMultiplayerMetric } from './multiplayer.observability.js';
+import { createAcceptedDecision } from './multiplayer.training.repository.js';
 
 function fail(status: number, code: ConstructorParameters<typeof ApiError>[1], message: string): never {
   throw new ApiError(status, code, message);
@@ -121,6 +122,7 @@ export const multiplayerService = {
       const participant = locked.participants.find((item) => item.userId === userId);
       if (!participant) fail(403, 'ROOM_ACCESS_DENIED', 'You are not a table participant');
       const hand = readHandState(locked.currentHand.stateSnapshot);
+      const handBeforeAction = structuredClone(hand);
       if (hand.seatToAct !== participant.seatNumber) fail(409, 'NOT_YOUR_TURN', 'It is not your turn to act');
 
       try {
@@ -148,7 +150,7 @@ export const multiplayerService = {
       }
 
       const nextVersion = locked.stateVersion + 1;
-      await tx.tableAction.create({
+      const actionRecord = await tx.tableAction.create({
         data: {
           handId: locked.currentHand.id,
           requestId: input.requestId,
@@ -161,6 +163,17 @@ export const multiplayerService = {
           resultingVersion: nextVersion
         }
       });
+      await createAcceptedDecision({
+        tableActionId: actionRecord.id,
+        handId: locked.currentHand.id,
+        userId,
+        tableParticipantId: participant.id,
+        seatNumber: participant.seatNumber,
+        sequence: hand.actionHistory.length,
+        actionType: input.type,
+        amount: input.amount ?? null,
+        handBeforeAction
+      }, tx);
       const completed = hand.bettingRound === 'complete';
       await tx.multiplayerHand.update({
         where: { id: locked.currentHand.id },

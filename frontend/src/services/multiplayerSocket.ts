@@ -1,5 +1,6 @@
 import { io, type Socket } from 'socket.io-client';
 import type { TableActionInput, TableResponse } from './multiplayerApi';
+import type { TrainingDecision } from './multiplayerTrainingApi';
 
 const SOCKET_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
@@ -27,6 +28,18 @@ export interface TablePresenceEvent {
   status: 'ONLINE' | 'DISCONNECTED';
 }
 
+export interface TrainingJoinedEvent {
+  roomId: string;
+  trainingSessionId: string;
+  participantStatus: string;
+}
+
+export interface TrainingDecisionEvent {
+  roomId: string;
+  trainingSessionId: string;
+  decision: TrainingDecision;
+}
+
 export function createMultiplayerSocket() {
   return io(SOCKET_URL, { withCredentials: true, autoConnect: false });
 }
@@ -46,4 +59,12 @@ export function sendTableHeartbeat(socket: Socket, roomId: string) {
 
 export function sendTableAction(socket: Socket, roomId: string, input: TableActionInput, acknowledge?: (response: { ok: boolean; code?: string; message?: string }) => void) {
   socket.emit('table:action', { roomId, ...input }, acknowledge);
+}
+
+export function joinTraining(socket: Socket, roomId: string) {
+  socket.emit('training:join', { roomId });
+}
+
+export function leaveTraining(socket: Socket, roomId: string) {
+  socket.emit('training:leave', { roomId });
 }

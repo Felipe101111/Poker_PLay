@@ -49,7 +49,7 @@ export function ProfilePage() {
   }
 
   return (
-    <div>
+    <div className="page-stack">
       <h1>Your profile</h1>
       <p>Email: {profile.email}</p>
       <p>Member since: {new Date(profile.createdAt).toLocaleDateString()}</p>
