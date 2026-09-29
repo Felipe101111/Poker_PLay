@@ -2,14 +2,16 @@ import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { strategyAdminError } from './strategy.admin.errors.js';
 import { strategyAdminRepository, type StrategyAdminRepository } from './strategy.admin.repository.js';
-import type { StrategyDatasetSummary, StrategyDraftUpdateInput, StrategyRowInput, StrategyVersionMetadataInput } from './strategy.admin.types.js';
-import { compatibilityKey, strategyDatasetSchema, strategyDraftUpdateSchema, strategyAdminRowSchema, strategyRetireSchema, strategyRoleSchema, strategyVersionMetadataSchema, validateStrategyRows } from './strategy.admin.validation.js';
+import type { StrategyActionInput, StrategyDatasetSummary, StrategyRowInput, StrategyVersionMetadataInput } from './strategy.admin.types.js';
+import { compatibilityKey, strategyDatasetSchema, strategyDraftUpdateSchema, strategyRetireSchema, strategyRoleSchema, strategyVersionMetadataSchema, validateStrategyRows } from './strategy.admin.validation.js';
 
 function asStringArray(value: Prisma.JsonValue): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
-function toVersion(version: any) {
+type StrategyVersionWithRows = Prisma.StrategyDatasetVersionGetPayload<{ include: { rows: true } }>;
+
+function toVersion(version: StrategyVersionWithRows) {
   return {
     id: version.id,
     datasetId: version.datasetId,
@@ -32,7 +34,14 @@ function toVersion(version: any) {
     },
     contentHash: version.contentHash,
     validationReport: version.validationReport,
-    rows: version.rows.map((row: any) => ({ contextKey: row.contextKey, range: row.rangeSnapshot, actions: row.actions, factors: row.factors, assumptions: row.assumptions, conditions: row.conditions })),
+    rows: version.rows.map((row) => ({
+      contextKey: row.contextKey,
+      range: row.rangeSnapshot,
+      actions: row.actions as unknown as StrategyActionInput[],
+      factors: row.factors as unknown as string[],
+      assumptions: row.assumptions as unknown as string[],
+      conditions: row.conditions as unknown as string[]
+    })),
     createdById: version.createdById,
     publishedById: version.publishedById,
     retiredById: version.retiredById,

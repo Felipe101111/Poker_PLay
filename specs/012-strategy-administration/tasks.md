@@ -59,7 +59,7 @@
 
 - [X] T018 [P] [US2] Add contract tests for validation and publish responses/errors in `backend/tests/contract/strategy-administration-publication.contract.test.ts`.
 - [X] T019 [P] [US2] Add unit tests for frequency totals, duplicate logical contexts, compatibility keys, empty drafts, and validation reports in `backend/tests/unit/strategy/strategy-administration-validation.test.ts`.
-- [ ] T020 [US2] Add integration tests for failed validation, atomic publish rollback, active-version replacement, idempotent publish retry, and historical snapshot preservation in `backend/tests/integration/strategy-administration-publication.integration.test.ts`.
+- [X] T020 [US2] Add integration tests for failed validation, atomic publish rollback, active-version replacement, idempotent publish retry, and historical snapshot preservation in `backend/tests/integration/strategy-administration-publication.integration.test.ts`.
 
 ### Implementation for User Story 2
 
@@ -80,16 +80,16 @@
 ### Tests for User Story 3
 
 - [X] T026 [P] [US3] Add contract tests for retirement, history, audit, and role-assignment endpoints in `backend/tests/contract/strategy-administration-governance.contract.test.ts`.
-- [ ] T027 [P] [US3] Add integration/security tests for role boundaries, audit redaction, retirement fallback/unavailability, repeated retirement, and unauthorized history access in `backend/tests/security/strategy-administration-governance.security.test.ts`.
-- [ ] T028 [US3] Add integration tests for retirement, chronological history, actor/motive metadata, and immutable historical snapshots in `backend/tests/integration/strategy-administration-governance.integration.test.ts`.
+- [X] T027 [P] [US3] Add integration/security tests for role boundaries, audit redaction, retirement fallback/unavailability, repeated retirement, and unauthorized history access in `backend/tests/security/strategy-administration-governance.security.test.ts`.
+- [X] T028 [US3] Add integration tests for retirement, chronological history, actor/motive metadata, and immutable historical snapshots in `backend/tests/integration/strategy-administration-governance.integration.test.ts`.
 
 ### Implementation for User Story 3
 
 - [X] T029 [US3] Implement transactional `PUBLISHED -> RETIRED` retirement with mandatory reason, publication record, idempotent retry behavior, and explicit no-compatible-version result in `backend/src/modules/strategy/strategy.admin.repository.ts` and `backend/src/modules/strategy/strategy.admin.service.ts`.
 - [X] T030 [US3] Implement append-only audit writes and filtered history queries in `backend/src/modules/strategy/strategy.admin.repository.ts`, excluding passwords, tokens, private cards, and raw sensitive payloads.
 - [X] T031 [US3] Add `GET /api/strategy/admin/datasets/:datasetId/history`, `GET /api/strategy/admin/audit`, `POST /api/strategy/admin/versions/:versionId/retire`, and `PATCH /api/strategy/admin/users/:userId/role` in `backend/src/modules/strategy/strategy.admin.routes.ts`.
-- [ ] T032 [US3] Add history, retirement, audit, and role-management views with role-aware controls and required retirement reason in `frontend/src/pages/StrategyAdministrationPage.tsx` and `frontend/src/pages/strategyAdministrationState.ts`.
-- [ ] T033 [US3] Add React Testing Library coverage for history/audit rendering, retirement confirmation, no-alternative availability, and admin-only role management in `frontend/tests/strategy-administration-governance.test.tsx`.
+- [X] T032 [US3] Add history, retirement, audit, and role-management views with role-aware controls and required retirement reason in `frontend/src/pages/StrategyAdministrationPage.tsx` and `frontend/src/pages/strategyAdministrationState.ts`.
+- [X] T033 [US3] Add React Testing Library coverage for history/audit rendering, retirement confirmation, no-alternative availability, and admin-only role management in `frontend/tests/strategy-administration-governance.test.tsx`.
 
 **Checkpoint**: All three user stories are independently verifiable; publication history, retirement, role assignment, and audit preserve data integrity and privacy.
 
@@ -98,7 +98,7 @@
 **Purpose**: Finish documentation, performance validation, full regression, and the quickstart gate.
 
 - [X] T034 [P] Update `README.md` and `backend/README.md` with editorial roles, lifecycle states, API boundaries, migration notes, and the Feature 012 quickstart.
-- [ ] T035 Add history-query performance coverage for 1,000 versions and bounded audit filters in `backend/tests/performance/strategy-administration.performance.test.ts`, targeting the spec's 95th-percentile under-2-second outcome.
+- [X] T035 Add history-query performance coverage for 1,000 versions and bounded audit filters in `backend/tests/performance/strategy-administration.performance.test.ts`, targeting the spec's 95th-percentile under-2-second outcome.
 - [ ] T036 Run the complete backend and frontend builds/tests plus the scenarios in `specs/012-strategy-administration/quickstart.md`, recording any unrelated baseline failures without changing scope.
 - [X] T037 Review `backend/src/modules/strategy/` and `frontend/src/` for duplicated authorization/validation logic, remove dead administration paths, and run lint/build checks before completion.
 

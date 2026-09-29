@@ -1,5 +1,16 @@
 # Quickstart: Validación de administración de estrategia
 
+## Estado de validación
+
+- Builds backend y frontend: pasan.
+- Migraciones Prisma: sin migraciones pendientes.
+- Pruebas enfocadas de Feature 012: 6/6 pasan; frontend administrativo: pasa.
+- Lint focalizado de `backend/src/modules/strategy/`: sin errores.
+- Lint global backend: mantiene errores baseline fuera de Feature 012 en equity, rooms y trainer; frontend: sin errores, con un warning existente en Analytics.
+- Suite completa backend: mantiene un fallo baseline de estrategia no relacionado con administración.
+- Escenarios manuales de navegador de esta guía: pendientes de ejecución.
+- Por ello, T036 permanece abierto hasta resolver o aceptar explícitamente el fallo baseline y ejecutar los escenarios manuales.
+
 ## Prerrequisitos
 
 - Node.js 20+.
@@ -71,4 +82,4 @@ Usar los tests existentes de Strategy/Trainer y verificar:
 
 ## Criterio de salida
 
-La feature está lista para tareas de implementación cuando la migración aplica, los escenarios de backend pasan, la UI representa los estados principales, el lookup existente conserva su contrato y las suites completas de backend/frontend siguen verdes.
+La implementación de Feature 012 está funcional en sus suites enfocadas y compilaciones. El cierre formal requiere que la suite completa backend quede verde y que se ejecuten los escenarios manuales de navegador descritos arriba; los errores baseline deben resolverse o aceptarse explícitamente antes de marcar T036.

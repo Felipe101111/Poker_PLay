@@ -9,7 +9,8 @@ export type DbClient = typeof prisma | Prisma.TransactionClient;
 export const tableInclude = {
   room: { include: { members: { include: { user: { select: { id: true, username: true } } }, orderBy: { seatNumber: 'asc' as const } } } },
   participants: { include: { user: { select: { id: true, username: true } } }, orderBy: { seatNumber: 'asc' as const } },
-  currentHand: true
+  currentHand: true,
+  hands: { where: { status: 'COMPLETED' as const }, orderBy: { handNumber: 'desc' as const }, take: 1 }
 } as const;
 
 export type TableWithDetails = Prisma.MultiplayerTableGetPayload<{ include: typeof tableInclude }>;

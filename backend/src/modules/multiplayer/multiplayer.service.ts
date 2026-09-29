@@ -7,6 +7,7 @@ import { systemPresenceClock, shouldAutoFoldDisconnectedActingSeat } from './mul
 import { projectTable } from './multiplayer.projection.js';
 import type { ReconnectInput, TableActionInput } from './multiplayer.validation.js';
 import type { TableStateChangeCause } from './multiplayer.types.js';
+import { recordMultiplayerMetric } from './multiplayer.observability.js';
 
 function fail(status: number, code: ConstructorParameters<typeof ApiError>[1], message: string): never {
   throw new ApiError(status, code, message);
@@ -40,7 +41,6 @@ export const multiplayerService = {
   async getTable(roomId: string, userId: string) {
     await assertStartedRoomMember(roomId, userId);
     const table = await loadOrBootstrap(roomId);
-    if (table.status === 'CLOSED') fail(409, 'TABLE_CLOSED', 'This table is closed');
     return { table: projectTable(table, userId) };
   },
 
@@ -85,6 +85,7 @@ export const multiplayerService = {
           requestId: `timeout-fold:${table.currentHand!.id}:${participant.userId}`,
           type: 'fold'
         });
+        recordMultiplayerMetric('timeout.folded', { roomId: table.roomId, stateVersion: table.stateVersion });
         foldedRooms.add(table.roomId);
       } catch (error) {
         if (!(error instanceof ApiError && ['NOT_YOUR_TURN', 'STALE_GAME_STATE', 'TABLE_CLOSED'].includes(error.code))) throw error;
@@ -221,6 +222,7 @@ export const multiplayerService = {
 
     const updated = await findTableForUser(roomId, userId);
     if (!updated) fail(404, 'TABLE_NOT_FOUND', 'No such table');
+    recordMultiplayerMetric(updated.status === 'CLOSED' ? 'table.closed' : 'action.accepted', { roomId, stateVersion: updated.stateVersion });
     return { table: projectTable(updated, userId), cause };
   }
 };

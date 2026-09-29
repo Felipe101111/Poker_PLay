@@ -41,7 +41,14 @@ export interface CurrentHand {
   actingSeat: number | null;
   legalActions: LegalActions | null;
   privateCards: Card[];
+  result: HandResult | null;
   players: TablePlayer[];
+}
+
+export interface HandResult {
+  potsAwarded: Array<{ amount: number; eligibleSeats: number[]; winners: number[] | null }>;
+  revealedSeats: number[];
+  handRanks: Record<string, number[]>;
 }
 
 export interface TableView {
@@ -52,6 +59,7 @@ export interface TableView {
   stateVersion: number;
   dealerSeat: number;
   currentHand: CurrentHand | null;
+  lastCompletedHand: { id: string; handNumber: number; board: Card[]; result: HandResult } | null;
 }
 
 export interface TableResponse {

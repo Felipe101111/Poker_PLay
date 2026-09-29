@@ -1,6 +1,6 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../../db/prisma/client.js';
-import type { StrategyDraftUpdateInput, StrategyRowInput, StrategyVersionMetadataInput } from './strategy.admin.types.js';
+import type { StrategyRowInput, StrategyVersionMetadataInput } from './strategy.admin.types.js';
 
 const json = (value: unknown) => value as Prisma.InputJsonValue;
 

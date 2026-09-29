@@ -96,10 +96,15 @@ export function MultiplayerTablePage() {
       <h1>Live table</h1>
       <p>{connected ? 'Connected' : 'Connecting'} · Hand {table.handNumber} · Version {table.stateVersion}</p>
       {table.status === 'CLOSED' && <p role="status">This table is closed.</p>}
+      {table.lastCompletedHand && <section aria-label="Last hand result">
+        <h2>Hand {table.lastCompletedHand.handNumber} result</h2>
+        <p>Pot awards: {table.lastCompletedHand.result.potsAwarded.map((pot) => `${pot.amount} to ${pot.winners?.join(', ') ?? 'none'}`).join(' · ')}</p>
+      </section>}
       {hand && <>
         <p>{hand.street} · Pot {hand.pot} · Acting seat {hand.actingSeat ?? 'none'}</p>
         <p>Board: {hand.board.map((card) => `${card.rank}${card.suit}`).join(' ') || 'No cards yet'}</p>
         <p>Your cards: {hand.privateCards.map((card) => `${card.rank}${card.suit}`).join(' ') || 'Hidden'}</p>
+        {hand.result && <p role="status">Hand result recorded: {hand.result.potsAwarded.map((pot) => `${pot.amount} to ${pot.winners?.join(', ') ?? 'none'}`).join(' · ')}</p>}
         <section aria-label="Players"><ul>{hand.players.map((player) => <li key={player.userId}>Seat {player.seatNumber}: {player.username} · {player.stack} · {player.connectionStatus}{player.folded ? ' · Folded' : ''}{player.eliminated ? ' · Eliminated' : ''}</li>)}</ul></section>
         <label>Bet or raise amount <input type="number" min="0" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
         <section aria-label="Actions">{actions.map((action) => <button key={action} type="button" onClick={() => submitAction(action)}>{action}</button>)}</section>

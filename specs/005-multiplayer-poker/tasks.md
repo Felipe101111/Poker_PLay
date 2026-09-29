@@ -19,9 +19,9 @@ description: "Implementation task list for multiplayer poker tables"
 
 - [X] T001 Add `socket.io` to `backend/package.json` and `socket.io-client` to the appropriate backend/frontend package manifests, preserving the existing Node.js 20 and TypeScript toolchain.
 - [X] T002 [P] Create the multiplayer module directories and placeholder entry files under `backend/src/modules/multiplayer/` (`multiplayer.types.ts`, `multiplayer.validation.ts`, `multiplayer.repository.ts`, `multiplayer.service.ts`, `multiplayer.routes.ts`, `multiplayer.socket.ts`, `multiplayer.presence.ts`, and `multiplayer.projection.ts`).
-- [ ] T003 [P] Create the feature test scaffolding under `backend/tests/contract/`, `backend/tests/integration/`, `backend/tests/unit/`, and `frontend/tests/` for multiplayer table coverage.
-- [ ] T004 [P] Add typed frontend service scaffolding in `frontend/src/services/multiplayerApi.ts` and `frontend/src/services/multiplayerSocket.ts` without duplicating the backend game rules.
-- [ ] T005 Update `backend/README.md` and the root `README.md` with the multiplayer prerequisite, local startup, and validation command references from `specs/005-multiplayer-poker/quickstart.md`.
+- [X] T003 [P] Create the feature test scaffolding under `backend/tests/contract/`, `backend/tests/integration/`, `backend/tests/unit/`, and `frontend/tests/` for multiplayer table coverage.
+- [X] T004 [P] Add typed frontend service scaffolding in `frontend/src/services/multiplayerApi.ts` and `frontend/src/services/multiplayerSocket.ts` without duplicating the backend game rules.
+- [X] T005 Update `backend/README.md` and the root `README.md` with the multiplayer prerequisite, local startup, and validation command references from `specs/005-multiplayer-poker/quickstart.md`.
 
 ---
 
@@ -82,9 +82,9 @@ description: "Implementation task list for multiplayer poker tables"
 
 ### Tests for User Story 2
 
-- [ ] T028 [P] [US2] Add action contract tests for `POST /api/rooms/:roomId/table/actions` in `backend/tests/contract/multiplayer-actions.test.ts`, covering legal actions, validation, turn ownership, stale versions, duplicate request IDs, and stable error bodies.
-- [ ] T029 [P] [US2] Add concurrency integration tests in `backend/tests/integration/multiplayer-concurrency.test.ts` that submit two actions for one turn concurrently and prove no more than one action, card, pot, or state transition is committed.
-- [ ] T030 [P] [US2] Add Poker Engine adapter tests in `backend/tests/unit/multiplayer-service.test.ts` proving fold/check/call/bet/raise/all-in, street advancement, side pots, and showdown transitions use the existing engine unchanged.
+- [X] T028 [P] [US2] Add action contract tests for `POST /api/rooms/:roomId/table/actions` in `backend/tests/contract/multiplayer-actions.test.ts`, covering legal actions, validation, turn ownership, stale versions, duplicate request IDs, and stable error bodies.
+- [X] T029 [P] [US2] Add concurrency integration tests in `backend/tests/integration/multiplayer-concurrency.test.ts` that submit two actions for one turn concurrently and prove no more than one action, card, pot, or state transition is committed.
+- [X] T030 [P] [US2] Add Poker Engine adapter tests in `backend/tests/unit/multiplayer-service.test.ts` proving fold/check/call/bet/raise/all-in, street advancement, side pots, and showdown transitions use the existing engine unchanged.
 
 ### Implementation for User Story 2
 
@@ -107,16 +107,16 @@ description: "Implementation task list for multiplayer poker tables"
 
 ### Tests for User Story 3
 
-- [ ] T037 [P] [US3] Add reconnect integration tests in `backend/tests/integration/multiplayer-reconnect.test.ts` covering refresh/reconnect, missed broadcasts, same-account multiple tabs, duplicate-seat prevention, version convergence, and private-card redaction.
+- [X] T037 [P] [US3] Add reconnect integration tests in `backend/tests/integration/multiplayer-reconnect.test.ts` covering refresh/reconnect, missed broadcasts, same-account multiple tabs, duplicate-seat prevention, version convergence, and private-card redaction.
 - [X] T038 [P] [US3] Add presence/timeout unit tests in `backend/tests/unit/multiplayer-presence.test.ts` covering online/disconnected transitions, server timestamps, 60-second grace, acting-seat auto-fold, and no repeated fold.
-- [ ] T039 [P] [US3] Add frontend reconnect tests in `frontend/tests/multiplayer-table.test.tsx` covering loading, connection-loss, snapshot recovery, stale-event discard, and closed-table states.
+- [X] T039 [P] [US3] Add frontend reconnect tests in `frontend/tests/multiplayer-table.test.tsx` covering loading, connection-loss, snapshot recovery, stale-event discard, and closed-table states.
 
 ### Implementation for User Story 3
 
 - [X] T040 [US3] Implement presence persistence and heartbeat methods in `backend/src/modules/multiplayer/multiplayer.repository.ts` for `lastSeenAt`, `disconnectedAt`, and participant connection status without trusting client timestamps.
 - [X] T041 [US3] Implement Socket.IO `table:heartbeat`, connection, and disconnect handlers in `backend/src/modules/multiplayer/multiplayer.socket.ts`, broadcasting `table:presence-changed` to authorized members and preserving the participant seat.
 - [X] T042 [US3] Implement the server-owned timeout scheduler/reaper in `backend/src/modules/multiplayer/multiplayer.socket.ts`, finding acting participants disconnected beyond 60 seconds and submitting one automatic fold through the normal transactional service path.
-- [ ] T043 [US3] Add reconnect snapshot recovery and same-account connection coordination in `backend/src/modules/multiplayer/multiplayer.service.ts`, ensuring one persisted participant seat and newest-version response regardless of connection count.
+- [X] T043 [US3] Add reconnect snapshot recovery and same-account connection coordination in `backend/src/modules/multiplayer/multiplayer.service.ts`, ensuring one persisted participant seat and newest-version response regardless of connection count.
 - [X] T044 [US3] Add frontend heartbeat, reconnect, state-version filtering, and presence rendering in `frontend/src/services/multiplayerSocket.ts` and `frontend/src/pages/MultiplayerTablePage.tsx`.
 
 **Checkpoint**: US3 is independently testable: reconnect is idempotent, authorized state is recoverable within the grace period, presence is visible, and timeout folding advances the table exactly once.
@@ -131,17 +131,17 @@ description: "Implementation task list for multiplayer poker tables"
 
 ### Tests for User Story 4
 
-- [ ] T045 [P] [US4] Add hand-result contract tests in `backend/tests/contract/multiplayer-results.test.ts` for fold wins, showdown reveals, ties, side-pot awards, updated stacks, completed-result visibility, and immutable terminal results.
-- [ ] T046 [P] [US4] Add next-hand/elimination integration tests in `backend/tests/integration/multiplayer-lifecycle.test.ts` for dealer/blind rotation, zero-stack elimination, fixed started roster, automatic next-hand creation, fewer-than-two closure, and rejection after closure.
-- [ ] T047 [P] [US4] Add frontend result/closure tests in `frontend/tests/multiplayer-table.test.tsx` for showdown display, pot awards, eliminated players, next-hand readiness, and terminal table state.
+- [X] T045 [P] [US4] Add hand-result contract tests in `backend/tests/contract/multiplayer-results.test.ts` for fold wins, showdown reveals, ties, side-pot awards, updated stacks, completed-result visibility, and immutable terminal results.
+- [X] T046 [P] [US4] Add next-hand/elimination integration tests in `backend/tests/integration/multiplayer-lifecycle.test.ts` for dealer/blind rotation, zero-stack elimination, fixed started roster, automatic next-hand creation, fewer-than-two closure, and rejection after closure.
+- [X] T047 [P] [US4] Add frontend result/closure tests in `frontend/tests/multiplayer-table.test.tsx` for showdown display, pot awards, eliminated players, next-hand readiness, and terminal table state.
 
 ### Implementation for User Story 4
 
-- [ ] T048 [US4] Implement atomic hand completion in `backend/src/modules/multiplayer/multiplayer.service.ts`, persisting the engine result, updating participant stacks, marking zero-stack participants `ELIMINATED`, and preserving the immutable completed result.
-- [ ] T049 [US4] Implement next-hand sequencing in `backend/src/modules/multiplayer/multiplayer.service.ts`, selecting at least two eligible participants, rotating dealer/blinds among eligible seats, incrementing hand number/version, and creating the next engine hand in the same transaction.
-- [ ] T050 [US4] Implement terminal table closure in `backend/src/modules/multiplayer/multiplayer.service.ts` and `backend/src/modules/multiplayer/multiplayer.repository.ts` when fewer than two eligible players remain, preserving completed results and rejecting later actions.
-- [ ] T051 [US4] Implement result projection and lifecycle event causes in `backend/src/modules/multiplayer/multiplayer.projection.ts` and `backend/src/modules/multiplayer/multiplayer.socket.ts` for `HAND_COMPLETED`, `PLAYER_ELIMINATED`, and `TABLE_CLOSED`.
-- [ ] T052 [US4] Render completed hand results, updated stacks, eliminated participants, next-hand transitions, and closed-table messaging in `frontend/src/pages/MultiplayerTablePage.tsx`.
+- [X] T048 [US4] Implement atomic hand completion in `backend/src/modules/multiplayer/multiplayer.service.ts`, persisting the engine result, updating participant stacks, marking zero-stack participants `ELIMINATED`, and preserving the immutable completed result.
+- [X] T049 [US4] Implement next-hand sequencing in `backend/src/modules/multiplayer/multiplayer.service.ts`, selecting at least two eligible participants, rotating dealer/blinds among eligible seats, incrementing hand number/version, and creating the next engine hand in the same transaction.
+- [X] T050 [US4] Implement terminal table closure in `backend/src/modules/multiplayer/multiplayer.service.ts` and `backend/src/modules/multiplayer/multiplayer.repository.ts` when fewer than two eligible players remain, preserving completed results and rejecting later actions.
+- [X] T051 [US4] Implement result projection and lifecycle event causes in `backend/src/modules/multiplayer/multiplayer.projection.ts` and `backend/src/modules/multiplayer/multiplayer.socket.ts` for `HAND_COMPLETED`, `PLAYER_ELIMINATED`, and `TABLE_CLOSED`.
+- [X] T052 [US4] Render completed hand results, updated stacks, eliminated participants, next-hand transitions, and closed-table messaging in `frontend/src/pages/MultiplayerTablePage.tsx`.
 
 **Checkpoint**: US4 is independently testable: a complete hand produces the Poker Engine result for every member, eligible players continue correctly, and the table closes cleanly below two eligible players.
 
@@ -151,11 +151,11 @@ description: "Implementation task list for multiplayer poker tables"
 
 **Purpose**: Harden the complete feature, document operations, and validate the end-to-end quickstart.
 
-- [ ] T053 [P] Add authorization/security regression coverage in `backend/tests/contract/multiplayer-security.test.ts` for crafted private-card reads, forged user/seat IDs, non-member socket joins, room mismatches, and malformed payloads.
-- [ ] T054 [P] Add state-projection and event-version regression coverage in `backend/tests/integration/multiplayer-consistency.test.ts` for delayed/duplicated broadcasts, missed delivery, post-commit recovery, and no state rollback.
-- [ ] T055 [P] Add frontend accessibility and error-state coverage in `frontend/tests/multiplayer-table.test.tsx` for keyboard action controls, readable turn/status messaging, loading states, connection loss, authorization errors, and table closure.
+- [X] T053 [P] Add authorization/security regression coverage in `backend/tests/contract/multiplayer-security.test.ts` for crafted private-card reads, forged user/seat IDs, non-member socket joins, room mismatches, and malformed payloads.
+- [X] T054 [P] Add state-projection and event-version regression coverage in `backend/tests/integration/multiplayer-consistency.test.ts` for delayed/duplicated broadcasts, missed delivery, post-commit recovery, and no state rollback.
+- [X] T055 [P] Add frontend accessibility and error-state coverage in `frontend/tests/multiplayer-table.test.tsx` for keyboard action controls, readable turn/status messaging, loading states, connection loss, authorization errors, and table closure.
 - [X] T056 Update `backend/README.md` and `README.md` with the final table lifecycle, event/reconnect behavior, timeout policy, private-card boundary, and no-tournament/no-real-money scope.
-- [ ] T057 Add operational logging/metrics around action latency, stale conflicts, socket connections, reconnects, timeout folds, table closure, and projection failures in `backend/src/modules/multiplayer/` without logging private cards or credentials.
+- [X] T057 Add operational logging/metrics around action latency, stale conflicts, socket connections, reconnects, timeout folds, table closure, and projection failures in `backend/src/modules/multiplayer/` without logging private cards or credentials.
 - [ ] T058 Run the full backend and frontend test suites, builds, lint checks, migration deployment, and every scenario in `specs/005-multiplayer-poker/quickstart.md`; record any environment prerequisites or residual gaps in the feature documentation.
 
 ---

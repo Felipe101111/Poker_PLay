@@ -1,7 +1,7 @@
 import { MultiplayerHandStatus } from '@prisma/client';
 import { computeLegalActions } from '../../poker-engine/betting.js';
 import type { HandState } from '../../poker-engine/types.js';
-import type { TableView } from './multiplayer.types.js';
+import type { CompletedHandView, HandResultView, TableView } from './multiplayer.types.js';
 import type { TableWithDetails } from './multiplayer.repository.js';
 import { readHandState } from './multiplayer.repository.js';
 
@@ -10,6 +10,11 @@ export function projectTable(table: TableWithDetails, viewerUserId: string): Tab
   const handRecord = table.currentHand;
   const hand = handRecord ? readHandState(handRecord.stateSnapshot) : null;
   const revealedSeats = new Set(hand?.result?.revealedSeats ?? []);
+  const result = hand?.result ? projectResult(hand.result) : null;
+  const completedRecord = table.hands?.[0];
+  const completedHand = completedRecord && completedRecord.id !== handRecord?.id
+    ? readHandState(completedRecord.stateSnapshot)
+    : null;
 
   return {
     id: table.id,
@@ -18,6 +23,9 @@ export function projectTable(table: TableWithDetails, viewerUserId: string): Tab
     handNumber: table.handNumber,
     stateVersion: table.stateVersion,
     dealerSeat: table.dealerSeat,
+    lastCompletedHand: completedRecord && completedHand?.result
+      ? { id: completedRecord.id, handNumber: completedRecord.handNumber, board: completedHand.communityCards, result: projectResult(completedHand.result) }
+      : null,
     currentHand: handRecord && hand
       ? {
           id: handRecord.id,
@@ -28,6 +36,7 @@ export function projectTable(table: TableWithDetails, viewerUserId: string): Tab
           actingSeat: hand.seatToAct,
           legalActions: viewer && hand.seatToAct === viewer.seatNumber ? computeLegalActions(hand) : null,
           privateCards: viewer ? hand.seats.find((seat) => seat.seatNumber === viewer.seatNumber)?.holeCards ?? [] : [],
+          result,
           players: table.participants.map((participant) => {
             const seat = hand.seats.find((item) => item.seatNumber === participant.seatNumber);
             const canReveal = participant.userId === viewerUserId || (seat ? revealedSeats.has(seat.seatNumber) : false);
@@ -47,6 +56,14 @@ export function projectTable(table: TableWithDetails, viewerUserId: string): Tab
           })
         }
       : null
+  };
+}
+
+function projectResult(result: NonNullable<HandState['result']>): HandResultView {
+  return {
+    potsAwarded: result.potsAwarded,
+    revealedSeats: result.revealedSeats,
+    handRanks: Object.fromEntries(Object.entries(result.handRanks).map(([seat, rank]) => [seat, rank]))
   };
 }
 

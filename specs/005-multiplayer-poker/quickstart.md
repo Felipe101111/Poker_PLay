@@ -100,4 +100,12 @@ npm.cmd run build
 
 The implementation is ready for review when the feature's multiplayer contract/integration tests cover the scenarios above, all existing feature tests remain green, and the builds complete without type errors.
 
+## Validation status
+
+- Prisma migration deployment completed with no pending migrations.
+- Frontend tests (34/34), frontend build, frontend lint, backend build, backend lint, and the focused multiplayer suites pass.
+- The full backend suite retains one pre-existing failure in `tests/unit/strategy/strategy-lookup.test.ts` (`AVAILABLE` expected, `UNAVAILABLE` received); this is outside Feature 005.
+- The result contract now covers fold wins, showdown reveals, ties, side-pot awards, updated stacks, completed-result visibility, and immutable results.
+- T058 remains open because the full backend suite retains the unrelated strategy baseline failure and the interactive quickstart scenarios were not run end to end in this session.
+
 See [data-model.md](data-model.md), [contracts/table-http.md](contracts/table-http.md), and [contracts/realtime-events.md](contracts/realtime-events.md) for the state and interface details used by these checks.

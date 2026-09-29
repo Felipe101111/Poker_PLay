@@ -1,5 +1,5 @@
 import type { ParticipantConnectionStatus, MultiplayerTableStatus, MultiplayerHandStatus } from '@prisma/client';
-import type { ActionType, Card, LegalActions } from '../../poker-engine/types.js';
+import type { ActionType, Card, LegalActions, Pot } from '../../poker-engine/types.js';
 
 export type { ParticipantConnectionStatus, MultiplayerTableStatus, MultiplayerHandStatus };
 
@@ -26,7 +26,21 @@ export interface CurrentHandView {
   actingSeat: number | null;
   legalActions: LegalActions | null;
   privateCards: Card[];
+  result: HandResultView | null;
   players: TablePlayerView[];
+}
+
+export interface HandResultView {
+  potsAwarded: Pot[];
+  revealedSeats: number[];
+  handRanks: Record<string, number[]>;
+}
+
+export interface CompletedHandView {
+  id: string;
+  handNumber: number;
+  board: Card[];
+  result: HandResultView;
 }
 
 export interface TableView {
@@ -37,6 +51,7 @@ export interface TableView {
   stateVersion: number;
   dealerSeat: number;
   currentHand: CurrentHandView | null;
+  lastCompletedHand: CompletedHandView | null;
 }
 
 export interface TableSnapshotEvent {
