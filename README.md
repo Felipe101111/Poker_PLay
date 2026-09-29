@@ -20,3 +20,7 @@ Feature 012 adds versioned strategy administration at `/api/strategy/admin` and 
 Feature 005 adds server-authoritative multiplayer tables at `/api/rooms/:roomId/table`. Started rooms reuse the Poker Engine through authenticated HTTP and Socket.IO flows, with per-user private-card projections, transactional actions, reconnect recovery, presence timeout folding, and virtual chips only. See [specs/005-multiplayer-poker/quickstart.md](specs/005-multiplayer-poker/quickstart.md) for migration and validation.
 
 See [backend/README.md](backend/README.md) for setup and API details, [specs/003-poker-engine/quickstart.md](specs/003-poker-engine/quickstart.md) for local-hand validation, [specs/005-multiplayer-poker/quickstart.md](specs/005-multiplayer-poker/quickstart.md) for multiplayer validation, and [specs/006-poker-trainer/quickstart.md](specs/006-poker-trainer/quickstart.md) for trainer validation.
+
+## Public deployment (Feature 015)
+
+The Render Blueprint in [render.yaml](render.yaml) defines the public deployment topology: a frontend Static Site, a backend Web Service, and a managed PostgreSQL database. Configure the provider-generated frontend origin in `FRONTEND_ORIGIN` and the backend origin in `VITE_API_BASE_URL` when service names or custom domains differ from the Blueprint defaults. Follow [specs/015-public-deployment/quickstart.md](specs/015-public-deployment/quickstart.md) for production setup, health checks, smoke tests, and recovery.

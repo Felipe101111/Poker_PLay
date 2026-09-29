@@ -15,6 +15,8 @@ import { multiplayerTrainingRouter } from './modules/multiplayer/multiplayer.tra
 import { trainerRouter } from './modules/trainer/trainer.routes.js';
 import { handHistoryRouter } from './modules/hand-history/hand-history.routes.js';
 import { strategyAdminRouter } from './modules/strategy/strategy.admin.routes.js';
+import { prisma } from './db/prisma/client.js';
+import { validateProductionConfig } from './config.js';
 
 dotenv.config();
 
@@ -49,6 +51,7 @@ export const sessionMiddleware = session({
 });
 
 export function createApp() {
+  validateProductionConfig();
   const app = express();
 
   app.use(express.json());
@@ -63,6 +66,23 @@ export function createApp() {
       credentials: true
     })
   );
+
+  app.get('/health', async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.status(200).json({
+        status: 'ok',
+        service: 'poker-play-backend',
+        dependencies: { database: 'ok' }
+      });
+    } catch {
+      res.status(503).json({
+        status: 'unavailable',
+        service: 'poker-play-backend',
+        dependencies: { database: 'unavailable' }
+      });
+    }
+  });
 
   // The same session middleware is mounted on HTTP and Socket.IO.
   app.use(sessionMiddleware);

@@ -16,7 +16,7 @@ io.engine.use(sessionMiddleware);
 registerMultiplayerSocket(io);
 const port = Number(process.env.PORT ?? 3000);
 
-httpServer.listen(port, () => {
+httpServer.listen(port, '0.0.0.0', () => {
   // eslint-disable-next-line no-console
   console.log(`Backend listening on http://localhost:${port}`);
 });

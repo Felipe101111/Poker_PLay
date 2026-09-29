@@ -1,5 +1,9 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:3000';
 
+if (import.meta.env.PROD && !import.meta.env.VITE_API_BASE_URL) {
+  throw new Error('VITE_API_BASE_URL must be configured for production builds');
+}
+
 export class ApiRequestError extends Error {
   readonly status: number;
   readonly code: string;
