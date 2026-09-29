@@ -45,7 +45,7 @@ export const sessionMiddleware = session({
   cookie: {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     maxAge: 1000 * 60 * 60 * 24 * 7
   }
 });
@@ -53,6 +53,7 @@ export const sessionMiddleware = session({
 export function createApp() {
   validateProductionConfig();
   const app = express();
+  app.set('trust proxy', 1);
 
   app.use(express.json());
   app.use(cookieParser());
