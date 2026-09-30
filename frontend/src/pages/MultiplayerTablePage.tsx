@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { PlayingCard, PokerTable } from '../components/PokerTable';
 import { ApiRequestError } from '../services/apiClient';
 import { multiplayerApi, type ActionType, type TableView } from '../services/multiplayerApi';
 import { abandonTable, createMultiplayerSocket, joinTable, leaveTable, sendTableAction, sendTableHeartbeat, type TableErrorEvent, type TablePresenceEvent, type TableSnapshotEvent, type TableStateChangedEvent } from '../services/multiplayerSocket';
@@ -106,29 +107,57 @@ export function MultiplayerTablePage() {
   const hand = table.currentHand;
   const actions = hand?.legalActions?.actions ?? [];
   return (
-    <main className="page-stack">
-      <h1>Live table</h1>
-      <nav aria-label="Table navigation">
-        <button type="button" onClick={() => navigate('/rooms')}>Back to rooms</button>
-        <button type="button" onClick={abandonGame} disabled={!connected || abandoning}>
-          {abandoning ? 'Leaving game...' : 'Abandon game'}
-        </button>
-      </nav>
-      <p>{connected ? 'Connected' : 'Connecting'} · Hand {table.handNumber} · Version {table.stateVersion}</p>
+    <main className="page-stack table-page">
+      <header className="table-page__header">
+        <div>
+          <h1>Live table</h1>
+          <p className={`table-page__connection${connected ? ' table-page__connection--online' : ''}`}>
+            {connected ? 'Connected' : 'Connecting'} · Hand {table.handNumber} · Version {table.stateVersion}
+          </p>
+        </div>
+        <nav aria-label="Table navigation">
+          <button type="button" onClick={() => navigate('/rooms')}>Back to rooms</button>
+          <button type="button" onClick={abandonGame} disabled={!connected || abandoning}>
+            {abandoning ? 'Leaving game...' : 'Abandon game'}
+          </button>
+        </nav>
+      </header>
       {table.status === 'CLOSED' && <p role="status">This table is closed.</p>}
-      {table.lastCompletedHand && <section aria-label="Last hand result">
+      {hand && <>
+        <PokerTable handId={hand.id} board={hand.board} players={hand.players} pot={hand.pot}
+          street={hand.street} actingSeat={hand.actingSeat} dealerSeat={table.dealerSeat}
+          winningSeats={hand.result?.potsAwarded.flatMap((pot) => pot.winners ?? [])} />
+        <div className="table-controls">
+          <div className="table-private-cards" role="group" aria-label="Your cards">
+            <span>Your cards</span>
+            <div className="table-private-cards__hand">
+              {hand.privateCards.length ? hand.privateCards.map((card, index) =>
+                <PlayingCard key={`${hand.id}-${card.rank}-${card.suit}`} card={card} index={index} />)
+                : <span>Hidden</span>}
+            </div>
+          </div>
+          <div className="table-actions">
+            {(actions.includes('bet') || actions.includes('raise')) && <label>Bet or raise amount
+              <input type="number" min={hand.legalActions?.minBetOrRaise ?? 0}
+                max={hand.legalActions?.maxBetOrRaise ?? undefined} value={amount}
+                onChange={(event) => setAmount(event.target.value)} />
+            </label>}
+            <div className="table-actions__buttons" role="group" aria-label="Actions">
+              {actions.map((action) => <button key={action} type="button" data-action={action}
+                disabled={!connected || abandoning || ((action === 'bet' || action === 'raise') && !amount)}
+                onClick={() => submitAction(action)}>
+                {action === 'call' && hand.legalActions?.callAmount != null ? `Call ${hand.legalActions.callAmount}` : action}
+              </button>)}
+            </div>
+          </div>
+        </div>
+        {hand.result && <p role="status">Hand result recorded: {hand.result.potsAwarded.map((pot) => `${pot.amount} to ${pot.winners?.join(', ') ?? 'none'}`).join(' · ')}</p>}
+      </>}
+      {!hand && table.status !== 'CLOSED' && <p role="status">Waiting for the next hand...</p>}
+      {table.lastCompletedHand && <div role="region" aria-label="Last hand result">
         <h2>Hand {table.lastCompletedHand.handNumber} result</h2>
         <p>Pot awards: {table.lastCompletedHand.result.potsAwarded.map((pot) => `${pot.amount} to ${pot.winners?.join(', ') ?? 'none'}`).join(' · ')}</p>
-      </section>}
-      {hand && <>
-        <p>{hand.street} · Pot {hand.pot} · Acting seat {hand.actingSeat ?? 'none'}</p>
-        <p>Board: {hand.board.map((card) => `${card.rank}${card.suit}`).join(' ') || 'No cards yet'}</p>
-        <p>Your cards: {hand.privateCards.map((card) => `${card.rank}${card.suit}`).join(' ') || 'Hidden'}</p>
-        {hand.result && <p role="status">Hand result recorded: {hand.result.potsAwarded.map((pot) => `${pot.amount} to ${pot.winners?.join(', ') ?? 'none'}`).join(' · ')}</p>}
-        <section aria-label="Players"><ul>{hand.players.map((player) => <li key={player.userId}>Seat {player.seatNumber}: {player.username} · {player.stack} · {player.connectionStatus}{player.folded ? ' · Folded' : ''}{player.eliminated ? ' · Eliminated' : ''}</li>)}</ul></section>
-        <label>Bet or raise amount <input type="number" min="0" value={amount} onChange={(event) => setAmount(event.target.value)} /></label>
-        <section aria-label="Actions">{actions.map((action) => <button key={action} type="button" onClick={() => submitAction(action)}>{action}</button>)}</section>
-      </>}
+      </div>}
     </main>
   );
 }

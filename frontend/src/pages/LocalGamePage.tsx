@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PokerTable } from '../components/PokerTable';
 import { localGameApi, type HandStateView } from '../services/localGameApi';
 import { ApiRequestError } from '../services/apiClient';
 
@@ -61,7 +62,7 @@ export function LocalGamePage() {
   const legalActions = hand?.legalActions;
 
   return (
-    <div className="page-stack">
+    <div className="page-stack table-page">
       <h1>Local Poker Table</h1>
       {error && <p role="alert">{error}</p>}
 
@@ -83,18 +84,17 @@ export function LocalGamePage() {
       )}
 
       {hand && (
-        <section>
-          <p>Betting round: {hand.bettingRound}</p>
-          <p>Community cards: {hand.communityCards.map((c) => `${c.rank}${c.suit}`).join(' ') || '—'}</p>
-          <p>
-            Pots:{' '}
-            {hand.pots.map((pot, index) => `Pot ${index + 1}: ${pot.amount} chips (eligible: ${pot.eligibleSeats.join(', ')})`).join('; ') || '—'}
-          </p>
-          <p>Seat to act: {hand.seatToAct ?? '—'}</p>
+        <>
+          <PokerTable handId={hand.id} board={hand.communityCards}
+            players={hand.seats.map((seat) => ({ ...seat, username: `Seat ${seat.seatNumber}` }))}
+            pot={hand.pots.reduce((total, pot) => total + pot.amount, 0)}
+            street={hand.bettingRound} actingSeat={hand.seatToAct}
+            winningSeats={hand.result?.potsAwarded.flatMap((pot) => pot.winners ?? [])} />
 
           {legalActions && hand.seatToAct === asSeat && legalActions.seatNumber === asSeat && (
-            <div>
+            <div className="table-controls">
               <h2>Your turn: Seat {asSeat}</h2>
+              <div className="table-actions">
               {(legalActions.actions.includes('bet') || legalActions.actions.includes('raise')) && (
                 <label htmlFor="betAmount">
                   Amount ({legalActions.minBetOrRaise}-{legalActions.maxBetOrRaise})
@@ -108,10 +108,11 @@ export function LocalGamePage() {
                   />
                 </label>
               )}
-              {legalActions.actions.map((action) => (
+              <div className="table-actions__buttons" role="group" aria-label="Actions">{legalActions.actions.map((action) => (
                 <button
                   key={action}
                   type="button"
+                  data-action={action}
                   onClick={() => handleAction(action)}
                   disabled={(action === 'bet' || action === 'raise') && !amount}
                 >
@@ -119,11 +120,13 @@ export function LocalGamePage() {
                     ? `Call ${legalActions.callAmount}`
                     : action}
                 </button>
-              ))}
+              ))}</div>
+              </div>
             </div>
           )}
 
-          <div>
+          <div className="table-controls">
+            <div>
             <label htmlFor="asSeat">View as seat</label>
             <select id="asSeat" value={asSeat} onChange={(e) => handleSwitchSeat(Number(e.target.value))}>
               {hand.seats.map((s) => (
@@ -132,25 +135,15 @@ export function LocalGamePage() {
                 </option>
               ))}
             </select>
-          </div>
-
-          <ul>
-            {hand.seats.map((s) => (
-              <li key={s.seatNumber}>
-                Seat {s.seatNumber} — stack {s.stack}
-                {s.folded ? ' (folded)' : ''}
-                {s.isAllIn ? ' (all-in)' : ''} —{' '}
-                {s.holeCards ? s.holeCards.map((c) => `${c.rank}${c.suit}`).join(' ') : 'face down'}
-              </li>
-            ))}
-          </ul>
+            </div>
 
           <button type="button" onClick={handleAbandon}>
             Abandon hand
           </button>
+          </div>
 
           {hand.result && (
-            <section>
+            <div role="region" aria-label="Hand result">
               <h2>Hand complete</h2>
               {hand.result.potsAwarded.map((pot, index) => (
                 <p key={index}>
@@ -162,9 +155,9 @@ export function LocalGamePage() {
                   Seat {seatNumber} hand category: {['high card', 'pair', 'two pair', 'three of a kind', 'straight', 'flush', 'full house', 'four of a kind', 'straight flush'][rank[0]] ?? 'unknown'}
                 </p>
               ))}
-            </section>
+            </div>
           )}
-        </section>
+        </>
       )}
     </div>
   );

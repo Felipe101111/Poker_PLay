@@ -1,4 +1,4 @@
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MultiplayerTablePage } from '../src/pages/MultiplayerTablePage';
@@ -29,7 +29,7 @@ vi.mock('../src/services/multiplayerSocket', () => ({
 }));
 
 const { multiplayerApi } = await import('../src/services/multiplayerApi');
-const { abandonTable } = await import('../src/services/multiplayerSocket');
+const { abandonTable, sendTableAction } = await import('../src/services/multiplayerSocket');
 
 function renderPage() {
   return render(<MemoryRouter initialEntries={['/rooms/room-1/table']}>
@@ -75,6 +75,32 @@ describe('MultiplayerTablePage', () => {
     socketHandlers['table:error']?.({ code: 'STALE_GAME_STATE', message: 'stale' });
 
     await waitFor(() => expect(multiplayerApi.reconnect).toHaveBeenCalledWith('room-1', 0));
+  });
+
+  it('renders private and community cards and submits bets from the visual controls', async () => {
+    const response = await multiplayerApi.get('room-1');
+    const currentHand = response.table.currentHand!;
+    vi.mocked(multiplayerApi.get).mockResolvedValue({ table: {
+      ...response.table, status: 'ACTIVE', lastCompletedHand: null,
+      currentHand: {
+        ...currentHand, status: 'ACTIVE', street: 'flop', actingSeat: 1, result: null,
+        board: [{ rank: '9', suit: 'h' }],
+        privateCards: [{ rank: 'A', suit: 's' }, { rank: 'K', suit: 's' }],
+        legalActions: { seatNumber: 1, actions: ['fold', 'call', 'raise'], callAmount: 10, minBetOrRaise: 20, maxBetOrRaise: 120 }
+      }
+    } });
+    renderPage();
+    const cards = await screen.findByRole('group', { name: 'Your cards' });
+    expect(within(cards).getByRole('img', { name: 'A of spades' })).toBeInTheDocument();
+    expect(within(screen.getByRole('group', { name: 'Community cards' })).getByRole('img', { name: '9 of hearts' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Call 10' })).toBeDisabled();
+    act(() => socketHandlers.connect?.());
+    expect(screen.getByRole('button', { name: 'raise' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Bet or raise amount'), { target: { value: '40' } });
+    fireEvent.click(screen.getByRole('button', { name: 'raise' }));
+    expect(sendTableAction).toHaveBeenCalledWith(socket, 'room-1', expect.objectContaining({ handId: 'hand-1', expectedVersion: 2, type: 'raise', amount: 40 }), expect.any(Function));
+    act(() => socketHandlers.disconnect?.());
+    expect(screen.getByRole('button', { name: 'raise' })).toBeDisabled();
   });
 
   it('navigates back to rooms and offers confirmed table abandonment', async () => {
