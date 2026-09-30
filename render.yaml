@@ -6,10 +6,12 @@ services:
     region: oregon
     rootDir: backend
     buildCommand: npm ci --include=dev && npm run prisma:generate && npm run build
-    startCommand: npm run prisma:migrate:deploy && npm start
+    startCommand: 'DATABASE_URL=${DIRECT_URL:-$DATABASE_URL} npm run prisma:migrate:deploy && npm start'
     healthCheckPath: /health
     envVars:
       - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
         sync: false
       - key: SESSION_SECRET
         generateValue: true
