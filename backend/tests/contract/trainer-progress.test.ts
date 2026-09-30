@@ -23,7 +23,7 @@ describe('trainer progress contract', () => {
     const started = await agent.post('/api/trainer/session/start').send({});
     await agent.post('/api/trainer/session/decisions').send({ scenarioId: started.body.scenario.id, requestId: 'progress-decision', action: { type: 'fold' } });
     const populated = await agent.get('/api/trainer/progress');
-    expect(populated.body.progress).toMatchObject({ completedDecisions: 1, unavailable: 1, empty: false });
+    expect(populated.body.progress).toMatchObject({ completedDecisions: 1, unavailable: 0, empty: false });
     expect(populated.body.progress.byAction.fold).toBe(1);
   });
 });

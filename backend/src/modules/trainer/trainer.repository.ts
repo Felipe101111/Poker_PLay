@@ -14,6 +14,38 @@ export async function findSessionByUser(userId: string, db = prisma) {
   return db.trainingSession.findFirst({ where: { userId, status: 'ACTIVE' }, include: trainerInclude });
 }
 
+export async function replaceUnsupportedCurrentScenario(
+  userId: string,
+  expectedScenarioId: string,
+  scenario: Omit<Prisma.TrainingScenarioUncheckedCreateWithoutSessionInput, 'sequence'>,
+  db = prisma
+) {
+  return db.$transaction(async (tx) => {
+    const candidate = await tx.trainingSession.findFirst({
+      where: { userId, status: 'ACTIVE', format: 'SIX_MAX_100BB_PREFLOP', currentScenarioId: expectedScenarioId },
+      select: { id: true }
+    });
+    if (!candidate) return null;
+
+    await tx.$queryRaw`SELECT "id" FROM "training_sessions" WHERE "id" = ${candidate.id} FOR UPDATE`;
+    const session = await tx.trainingSession.findUnique({ where: { id: candidate.id }, include: trainerInclude });
+    if (!session || session.currentScenarioId !== expectedScenarioId) return session;
+
+    const existingDecision = await tx.trainingDecision.findFirst({ where: { scenarioId: expectedScenarioId, userId } });
+    if (existingDecision) return session;
+
+    const previous = await tx.trainingScenario.aggregate({ where: { sessionId: session.id }, _max: { sequence: true } });
+    const replacement = await tx.trainingScenario.create({
+      data: { ...scenario, sessionId: session.id, sequence: (previous._max.sequence ?? 0) + 1 }
+    });
+    return tx.trainingSession.update({
+      where: { id: session.id },
+      data: { currentScenarioId: replacement.id },
+      include: trainerInclude
+    });
+  });
+}
+
 export async function findPostflopSessionByUser(userId: string, db = prisma) {
   return db.trainingSession.findFirst({ where: { userId, status: 'ACTIVE', format: 'SIX_MAX_100BB_POSTFLOP' }, include: trainerInclude });
 }

@@ -4,7 +4,7 @@ import { ApiError } from '../../shared/errors.js';
 import { generateScenario } from './trainer.generator.js';
 import { continuePostflopScenario, generatePostflopScenario } from './trainer.postflop-generator.js';
 import { classifyAction, lookupPostflopStrategy, lookupStrategy } from './trainer.strategy.js';
-import { completePostflopSession, continueSession, createSessionWithScenario, findLatestPostflopSessionByUser, findPostflopSessionByUser, findScenarioById, findSessionByUser, getDecisionForUser, getProgressRows, insertDecisionIdempotent, markPostflopScenarioTerminal, persistTrainerEvaluationSnapshot } from './trainer.repository.js';
+import { completePostflopSession, continueSession, createSessionWithScenario, findLatestPostflopSessionByUser, findPostflopSessionByUser, findScenarioById, findSessionByUser, getDecisionForUser, getProgressRows, insertDecisionIdempotent, markPostflopScenarioTerminal, persistTrainerEvaluationSnapshot, replaceUnsupportedCurrentScenario } from './trainer.repository.js';
 import type { DecisionInput, NextScenarioInput } from './trainer.validation.js';
 import { toActionAmountChips, type TrainerSessionResponse } from './trainer.types.js';
 import { projectDecision, projectScenario } from './trainer.projection.js';
@@ -17,10 +17,21 @@ function trainerLog(event: string, fields: Record<string, string | number | bool
   process.stdout.write(`${JSON.stringify({ scope: 'trainer', event, ...fields })}\n`);
 }
 
+async function ensureSupportedPreflopScenario(userId: string, session: NonNullable<Awaited<ReturnType<typeof findSessionByUser>>>) {
+  const current = session.currentScenario;
+  if (!current || lookupStrategy(current.strategyKey)) return session;
+  if (await getDecisionForUser(current.id, userId)) return session;
+
+  const generated = generateScenario(userId);
+  const strategy = lookupStrategy(generated.strategyKey);
+  if (!strategy) return session;
+  return await replaceUnsupportedCurrentScenario(userId, current.id, scenarioData(generated, strategy.version)) ?? session;
+}
+
 export const trainerService = {
   async startOrResume(userId: string): Promise<TrainerSessionResponse> {
     const existing = await findSessionByUser(userId);
-    if (existing) return toResponse(existing);
+    if (existing) return toResponse(await ensureSupportedPreflopScenario(userId, existing));
     const generated = generateScenario(userId);
     const strategy = lookupStrategy(generated.strategyKey);
     const created = await createSessionWithScenario(userId, scenarioData(generated, strategy?.version ?? null));
@@ -29,7 +40,8 @@ export const trainerService = {
   },
 
   async current(userId: string): Promise<TrainerSessionResponse> {
-    const session = await findSessionByUser(userId);
+    const existing = await findSessionByUser(userId);
+    const session = existing ? await ensureSupportedPreflopScenario(userId, existing) : null;
     if (!session) fail(404, 'TRAINING_SESSION_NOT_FOUND', 'No active training session');
     return toResponse(session);
   },

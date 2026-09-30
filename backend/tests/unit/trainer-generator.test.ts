@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { generateScenario } from '../../src/modules/trainer/trainer.generator.js';
+import { lookupStrategy } from '../../src/modules/trainer/trainer.strategy.js';
 
 describe('trainer scenario generator', () => {
   it('creates a deterministic six-player preflop scenario with unique cards', () => {
@@ -11,7 +12,9 @@ describe('trainer scenario generator', () => {
     expect(first.hand.seats).toHaveLength(6);
     expect(new Set(cards.map((card) => `${card.rank}${card.suit}`)).size).toBe(12);
     expect(first.hand.bettingRound).toBe('preflop');
-    expect(first.hand.actionHistory).toEqual([]);
+    expect(first.position).toBe('BTN');
+    expect(first.hand.actionHistory.map((action) => action.type)).toEqual(['fold', 'fold', 'fold']);
+    expect(lookupStrategy(first.strategyKey)).not.toBeNull();
     expect(first.legalActions.actions).toContain('fold');
   });
 });
